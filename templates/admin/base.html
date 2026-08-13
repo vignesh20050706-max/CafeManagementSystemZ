@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin{% endblock %} | {{ cafe_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <style>
+        :root {
+            --admin-primary: #7C3F2C;
+            --admin-bg: #FAF9F7;
+            --admin-surface: #FFFFFF;
+            --admin-text: #222222;
+            --admin-muted: #6B6B6B;
+            --admin-border: #E8E5E1;
+            --admin-success: #2E7D32;
+            --admin-warning: #B7791F;
+            --admin-danger: #C0392B;
+        }
+        body {
+            background-color: var(--admin-bg);
+            color: var(--admin-text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .admin-sidebar {
+            width: 240px;
+            min-height: 100vh;
+            background-color: var(--admin-primary);
+            color: #fff;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease;
+        }
+        .admin-sidebar .sidebar-brand {
+            padding: 20px 18px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .admin-sidebar .sidebar-brand small {
+            display: block;
+            font-weight: 400;
+            font-size: 0.78rem;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+        .admin-sidebar .nav-menu {
+            list-style: none;
+            padding: 10px 0;
+            margin: 0;
+            flex: 1;
+        }
+        .admin-sidebar .nav-menu li a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 18px;
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: 0.9rem;
+            border-left: 3px solid transparent;
+            transition: all 0.15s ease;
+        }
+        .admin-sidebar .nav-menu li a:hover,
+        .admin-sidebar .nav-menu li a.active {
+            background-color: rgba(255,255,255,0.1);
+            color: #fff;
+            border-left-color: #fff;
+        }
+        .admin-sidebar .nav-menu li a .nav-icon {
+            width: 20px;
+            text-align: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .admin-sidebar .sidebar-footer {
+            padding: 14px 18px;
+            border-top: 1px solid rgba(255,255,255,0.15);
+        }
+        .admin-sidebar .sidebar-footer a {
+            color: rgba(255,255,255,0.75);
+            text-decoration: none;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 0.15s ease;
+        }
+        .admin-sidebar .sidebar-footer a:hover {
+            color: #fff;
+        }
+        .admin-main {
+            margin-left: 240px;
+            min-height: 100vh;
+        }
+        .admin-topbar {
+            background-color: var(--admin-surface);
+            border-bottom: 1px solid var(--admin-border);
+            padding: 12px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 900;
+        }
+        .admin-topbar .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .admin-topbar .topbar-left .badge-admin {
+            background-color: var(--admin-primary);
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .admin-topbar .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: var(--admin-muted);
+            font-size: 0.88rem;
+        }
+        .admin-content {
+            padding: 24px 28px;
+        }
+        .btn-admin {
+            background-color: var(--admin-primary);
+            border-color: var(--admin-primary);
+            color: #fff;
+        }
+        .btn-admin:hover,
+        .btn-admin:focus {
+            background-color: #683424;
+            border-color: #683424;
+            color: #fff;
+        }
+        .btn-outline-admin {
+            border-color: var(--admin-primary);
+            color: var(--admin-primary);
+        }
+        .btn-outline-admin:hover {
+            background-color: var(--admin-primary);
+            border-color: var(--admin-primary);
+            color: #fff;
+        }
+        .card {
+            border-color: var(--admin-border);
+            border-radius: 8px;
+        }
+        .card-header {
+            background-color: var(--admin-surface);
+            border-bottom-color: var(--admin-border);
+            font-weight: 600;
+            color: var(--admin-text);
+        }
+        .table {
+            color: var(--admin-text);
+        }
+        .table thead th {
+            background-color: #F5F3F0;
+            border-bottom-color: var(--admin-border);
+            font-weight: 600;
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: var(--admin-muted);
+        }
+        .table td {
+            border-bottom-color: var(--admin-border);
+            vertical-align: middle;
+        }
+        @media (max-width: 991.98px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+            }
+            .admin-sidebar.show {
+                transform: translateX(0);
+            }
+            .admin-main {
+                margin-left: 0;
+            }
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.4);
+                z-index: 999;
+            }
+            .sidebar-overlay.show {
+                display: block;
+            }
+        }
+    </style>
+    {% block extra_styles %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar Overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="adminSidebar">
+        <div class="sidebar-brand">
+            {{ cafe_name }}
+            <small>Admin Panel</small>
+        </div>
+        <ul class="nav-menu">
+            <li>
+                <a href="{{ url_for('admin_routes.dashboard') }}" class="{{ 'active' if request.endpoint == 'admin_routes.dashboard' else '' }}">
+                    <span class="nav-icon">&#9632;</span> Dashboard
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_routes.orders') }}" class="{{ 'active' if request.endpoint == 'admin_routes.orders' else '' }}">
+                    <span class="nav-icon">&#9993;</span> Orders
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_routes.menu_management') }}" class="{{ 'active' if request.endpoint == 'admin_routes.menu_management' else '' }}">
+                    <span class="nav-icon">&#9776;</span> Menu
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_routes.history') }}" class="{{ 'active' if request.endpoint == 'admin_routes.history' else '' }}">
+                    <span class="nav-icon">&#8986;</span> History
+                </a>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="{{ url_for('admin_routes.logout') }}">
+                <span>&#x2190;</span> Logout
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+        <!-- Top Bar -->
+        <header class="admin-topbar">
+            <div class="topbar-left">
+                <button class="btn btn-sm btn-outline-secondary d-lg-none" onclick="toggleSidebar()" type="button">
+                    &#9776;
+                </button>
+                <span class="badge-admin">Admin</span>
+                <span class="d-none d-md-inline text-muted" style="font-size:0.88rem;">{{ cafe_name }}</span>
+            </div>
+            <div class="topbar-right" id="topbarRight">
+                {% block topbar_extra %}{% endblock %}
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="admin-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.getElementById('adminSidebar').classList.toggle('show');
+            document.getElementById('sidebarOverlay').classList.toggle('show');
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

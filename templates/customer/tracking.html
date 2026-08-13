@@ -1,0 +1,262 @@
+{% extends "customer/base.html" %}
+{% block title %}Track Order - {{ cafe_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    body { padding-bottom: 0 !important; }
+    .cafe-footer { position: relative; }
+
+    /* Stepper */
+    .stepper {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        position: relative;
+        padding: 0 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .stepper::before {
+        content: '';
+        position: absolute;
+        top: 16px;
+        left: 28px;
+        right: 28px;
+        height: 3px;
+        background: var(--border);
+        z-index: 0;
+    }
+    .stepper-fill {
+        position: absolute;
+        top: 16px;
+        left: 28px;
+        height: 3px;
+        background: var(--success);
+        z-index: 1;
+        transition: width 0.5s ease;
+    }
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 2;
+        flex: 1;
+        max-width: 70px;
+    }
+    .step-circle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        color: var(--muted);
+        font-weight: 700;
+        transition: all 0.3s;
+    }
+    .step.active .step-circle,
+    .step.done .step-circle {
+        background: var(--success);
+        color: #fff;
+    }
+    .step.rejected .step-circle {
+        background: var(--danger);
+        color: #fff;
+    }
+    .step-label {
+        font-size: 0.65rem;
+        margin-top: 0.4rem;
+        color: var(--muted);
+        text-align: center;
+        font-weight: 500;
+        line-height: 1.2;
+    }
+    .step.active .step-label,
+    .step.done .step-label { color: var(--success); font-weight: 600; }
+    .step.rejected .step-label { color: var(--danger); font-weight: 600; }
+
+    /* Countdown */
+    .countdown {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    .countdown-time {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--primary);
+        letter-spacing: 1px;
+    }
+    .countdown-label {
+        font-size: 0.75rem;
+        color: var(--muted);
+    }
+
+    .info-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    .info-card h2 {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .item-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.3rem 0;
+        font-size: 0.82rem;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.7rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .status-received { background: #E3F2FD; color: #1565C0; }
+    .status-accepted { background: #FFF3E0; color: #E65100; }
+    .status-preparing { background: #FFF8E1; color: #F57F17; }
+    .status-ready { background: #E8F5E9; color: var(--success); }
+    .status-delivered { background: #E8F5E9; color: var(--success); }
+    .status-rejected { background: #FFEBEE; color: var(--danger); }
+
+    .qr-placeholder {
+        width: 140px;
+        height: 140px;
+        border: 2px dashed var(--border);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0.5rem auto 0;
+        color: var(--muted);
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if order is none %}
+<!-- Order Not Found -->
+<div class="text-center py-5">
+    <div style="font-size:3rem;opacity:0.15;">&#128270;</div>
+    <h2 class="h6 mt-2 mb-1">Order Not Found</h2>
+    <p class="text-muted small mb-3">We couldn't find an order with that ID. Please check and try again.</p>
+    <a href="/" class="btn btn-primary px-4 py-2">Go Home</a>
+</div>
+
+{% else %}
+<!-- Order Header -->
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h1 class="h5 fw-bold mb-0">Order Tracking</h1>
+        <small class="text-muted">{{ order.order_id }}</small>
+    </div>
+    <span class="status-badge status-{{ order.status }}" id="status-badge">{{ order.status|replace('_',' ')|title }}</span>
+</div>
+
+{% if order.status == 'rejected' %}
+<!-- Rejection Banner -->
+<div class="alert alert-danger py-2 px-3 mb-3 small" id="rejection-banner">
+    <strong>&#10060; Order Rejected</strong><br>
+    <span id="rejection-reason">{{ order.rejection_reason or 'Your order could not be processed.' }}</span>
+    <div class="mt-2 fw-semibold" id="refund-status">
+        {% if order.refund_status == 'refunded' %}
+            Your payment has been refunded to the original payment method.
+        {% elif order.refund_status == 'pending' %}
+            Your refund is being processed.
+        {% elif order.refund_status == 'refund_failed' %}
+            We could not complete the refund automatically. Please contact the cafe.
+        {% else %}
+            No payment refund is required.
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="alert alert-danger py-2 px-3 mb-3 small d-none" id="rejection-banner">
+    <strong>&#10060; Order Rejected</strong><br>
+    <span id="rejection-reason"></span>
+    <div class="mt-2 fw-semibold" id="refund-status"></div>
+</div>
+{% endif %}
+
+<!-- Progress Stepper -->
+<div class="stepper" id="stepper">
+    <div class="stepper-fill" id="stepper-fill"></div>
+    <div class="step" data-step="received">
+        <div class="step-circle">1</div>
+        <span class="step-label">Received</span>
+    </div>
+    <div class="step" data-step="accepted">
+        <div class="step-circle">2</div>
+        <span class="step-label">Accepted</span>
+    </div>
+    <div class="step" data-step="preparing">
+        <div class="step-circle">3</div>
+        <span class="step-label">Preparing</span>
+    </div>
+    <div class="step" data-step="ready">
+        <div class="step-circle">4</div>
+        <span class="step-label">Ready</span>
+    </div>
+    <div class="step" data-step="delivered">
+        <div class="step-circle">5</div>
+        <span class="step-label">Delivered</span>
+    </div>
+</div>
+
+<!-- Countdown Timer -->
+{% if order.estimated_ready_time and order.status not in ['delivered', 'rejected'] %}
+<div class="countdown" id="countdown-section">
+    <div class="countdown-label">Estimated ready in</div>
+    <div class="countdown-time" id="countdown-timer">--:--</div>
+</div>
+{% endif %}
+
+<!-- Order Items -->
+<div class="info-card">
+    <h2>&#127858; Order Items</h2>
+    <div id="order-items">
+        {% for item in order.items %}
+        <div class="item-row">
+            <span>{{ item.quantity }} &times; {{ item.item_name }}</span>
+            <span class="fw-semibold">Rs.{{ item.subtotal }}</span>
+        </div>
+        {% endfor %}
+        <div class="item-row" style="border-top:1px solid var(--border);margin-top:0.3rem;padding-top:0.5rem;font-weight:700;">
+            <span>Total</span>
+            <span style="color:var(--primary);">Rs.{{ order.total_amount }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Pickup Info -->
+<div class="info-card">
+    <h2>&#128205; Pickup Info</h2>
+    <div class="small text-muted mb-1">Order Type: <strong class="text-body">{{ order.order_type|replace('_','-')|title }}</strong></div>
+    {% if order.order_type == 'dine_in' and order.table_number %}
+    <div class="small text-muted">Table: <strong class="text-body">{{ order.table_number }}</strong></div>
+    {% endif %}
+    {% if order.qr_code %}
+    <div class="qr-placeholder" id="qr-display">&#9638; Order QR</div>
+    {% endif %}
+</div>
+
+<a href="/orders" class="btn btn-outline-primary w-100 py-2 mt-1 mb-3" style="border-radius:10px;">View All Orders</a>
+{% endif %}
+
+<script src="/static/js/tracking.js"></script>
+{% endblock %}

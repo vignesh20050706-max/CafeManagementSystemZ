@@ -1,0 +1,392 @@
+/* ============================================================
+   admin.css - Admin panel (desktop-first)
+   ============================================================ */
+
+/* --- Sidebar ----------------------------------------------- */
+.admin-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 240px;
+  background-color: var(--color-primary-dark);
+  color: #FFFFFF;
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.25s ease;
+}
+
+.admin-sidebar .sidebar-brand {
+  padding: 1.25rem 1.25rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+  text-decoration: none;
+  display: block;
+}
+
+.admin-sidebar .sidebar-nav {
+ list-style: none;
+  padding: 0.75rem 0;
+  margin: 0;
+  flex: 1;
+}
+
+.admin-sidebar .sidebar-nav li a {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 1.25rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.admin-sidebar .sidebar-nav li a:hover {
+  color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.admin-sidebar .sidebar-nav li a.active {
+  color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* --- Main Content Area ------------------------------------- */
+.admin-main {
+  margin-left: 240px;
+  min-height: 100vh;
+}
+
+/* --- Top Bar ----------------------------------------------- */
+.admin-topbar {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+ padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+}
+
+.admin-topbar h1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Hamburger toggle (mobile only) */
+.sidebar-toggle {
+ display: none;
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+}
+
+/* --- Stat Cards -------------------------------------------- */
+.stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  border-left: 4px solid var(--color-primary);
+}
+
+.stat-card.stat-success {
+  border-left-color: var(--color-success);
+}
+
+.stat-card.stat-warning {
+  border-left-color: var(--color-warning);
+}
+
+.stat-card.stat-info {
+  border-left-color: #1565C0;
+}
+
+.stat-card .stat-label {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.stat-card .stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+/* --- Orders Table ------------------------------------------ */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.admin-table thead th {
+  background-color: var(--color-bg);
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-table tbody td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.admin-table tbody tr:hover {
+  background-color: rgba(124, 63, 44, 0.02);
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* New order pulse animation */
+@keyframes orderPulse {
+  0%, 100% {
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: inset 3px 0 0 var(--color-primary);
+  }
+}
+
+.admin-table tbody tr.order-new {
+  animation: orderPulse 2s ease-in-out 2;
+}
+
+/* --- Form Inputs ------------------------------------------- */
+.admin-form .form-label {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  margin-bottom: 0.3rem;
+}
+
+.admin-form .form-control,
+.admin-form .form-select {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-form .form-control:focus,
+.admin-form .form-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(124, 63, 44, 0.1);
+}
+
+/* --- Modals ------------------------------------------------ */
+.admin-modal .modal-content {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.admin-modal .modal-header {
+  border-bottom: 1px solid var(--color-border);
+  padding: 1rem 1.25rem;
+}
+
+.admin-modal .modal-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.admin-modal .modal-body {
+  padding: 1.25rem;
+}
+
+.admin-modal .modal-footer {
+  border-top: 1px solid var(--color-border);
+  padding: 0.85rem 1.25rem;
+}
+
+/* --- Action Buttons ---------------------------------------- */
+.btn-action {
+  padding: 0.35rem 0.7rem;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-action:hover {
+  opacity: 0.85;
+}
+
+.btn-action.btn-action-primary {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.btn-action.btn-action-success {
+  background-color: var(--color-success);
+  color: #FFFFFF;
+}
+
+.btn-action.btn-action-warning {
+  background-color: var(--color-warning);
+  color: #FFFFFF;
+}
+
+.btn-action.btn-action-danger {
+  background-color: var(--color-danger);
+  color: #FFFFFF;
+}
+
+/* --- Toggle Switches --------------------------------------- */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  display: inline-block;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: var(--color-border);
+  border-radius: 24px;
+  transition: background-color 0.2s ease;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #FFFFFF;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--color-primary);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+
+/* --- Menu Management Table --------------------------------- */
+.menu-mgmt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.menu-mgmt-table thead th {
+  background-color: var(--color-bg);
+  padding: 0.65rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.menu-mgmt-table tbody td {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.menu-mgmt-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* --- Sidebar Overlay (mobile) ------------------------------ */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1045;
+}
+
+.sidebar-overlay.show {
+  display: block;
+}
+
+/* --- Responsive: Mobile (<768px) --------------------------- */
+@media (max-width: 767px) {
+  .sidebar-toggle {
+    display: inline-block;
+  }
+
+  .admin-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .admin-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .admin-main {
+    margin-left: 0;
+  }
+
+  .admin-topbar {
+    padding: 0.65rem 1rem;
+  }
+
+  .admin-table,
+  .menu-mgmt-table {
+    font-size: 0.85rem;
+  }
+
+  .admin-table thead th,
+  .admin-table tbody td,
+  .menu-mgmt-table thead th,
+  .menu-mgmt-table tbody td {
+    padding: 0.55rem 0.65rem;
+  }
+
+  /* Responsive table wrapper - let tables scroll horizontally */
+  .table-responsive-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

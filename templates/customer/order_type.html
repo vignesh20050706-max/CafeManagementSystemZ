@@ -1,0 +1,35 @@
+{% extends "customer/base.html" %}
+{% block title %}Choose Order Type - {{ cafe_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column align-items-center justify-content-center" style="min-height:calc(100vh - 180px);">
+    <h1 class="h5 fw-bold text-center mb-1">How would you like your order?</h1>
+    <p class="text-muted text-center small mb-4">Select your preferred dining option</p>
+
+    <div class="row g-3 w-100" style="max-width:400px;">
+        <!-- Takeaway -->
+        <div class="col-6">
+            <button onclick="selectOrderType('takeaway')" class="card border h-100 w-100 text-center py-4" style="border-color:var(--border)!important;border-radius:14px;cursor:pointer;background:var(--bg);transition:all 0.2s;">
+                <div style="font-size:2.5rem;line-height:1;margin-bottom:0.6rem;">&#128666;</div>
+                <div class="fw-bold mb-1" style="color:var(--text);font-size:1.05rem;">Takeaway</div>
+                <div class="small text-muted">Pack & go</div>
+            </button>
+        </div>
+        <!-- Dine-in -->
+        <div class="col-6">
+            <button onclick="selectOrderType('dine_in')" class="card border h-100 w-100 text-center py-4" style="border-color:var(--border)!important;border-radius:14px;cursor:pointer;background:var(--bg);transition:all 0.2s;">
+                <div style="font-size:2.5rem;line-height:1;margin-bottom:0.6rem;">&#127869;</div>
+                <div class="fw-bold mb-1" style="color:var(--text);font-size:1.05rem;">Dine-in</div>
+                <div class="small text-muted">Eat here</div>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function selectOrderType(type) {
+    localStorage.setItem('order_type', type);
+    window.location.href = '/menu';
+}
+</script>
+{% endblock %}

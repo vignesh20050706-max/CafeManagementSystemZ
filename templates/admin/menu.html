@@ -1,0 +1,463 @@
+{% extends "admin/base.html" %} {% block title %}Menu Management{% endblock %}
+{% block content %}
+<!-- Top Actions -->
+<div
+  class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4"
+>
+  <h5 class="fw-bold mb-0">Menu Management</h5>
+  <div class="d-flex gap-2">
+    <!-- Add Category -->
+    <div class="input-group" style="max-width: 300px">
+      <input
+        type="text"
+        id="newCategoryName"
+        class="form-control form-control-sm"
+        placeholder="New category name"
+      />
+      <button class="btn btn-outline-admin btn-sm" onclick="addCategory()">
+        + Add Category
+      </button>
+    </div>
+    <button
+      class="btn btn-admin btn-sm"
+      data-bs-toggle="modal"
+      data-bs-target="#addItemModal"
+    >
+      + Add Item
+    </button>
+  </div>
+</div>
+
+<!-- Categories & Items -->
+{% for category in categories %}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <span>{{ category.name }}</span>
+      <span class="badge rounded-pill bg-secondary"
+        >{{ category.items|length if category.items else 0 }} items</span
+      >
+    </div>
+    <button
+      type="button"
+      class="btn btn-sm btn-outline-danger"
+      onclick="deleteCategory({{ category.id }}, {{ category.name|tojson }}, {{ (category.items|length if category.items else 0) }})"
+      title="Delete category"
+    >
+      Delete Category
+    </button>
+  </div>
+  <div class="card-body p-0">
+    {% if category.items and category.items|length > 0 %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th style="width: 60px">#</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th class="text-end" style="width: 100px">Price</th>
+            <th class="text-center" style="width: 100px">Available</th>
+            <th class="text-center" style="width: 100px">Daily Special</th>
+            <th class="text-center" style="width: 120px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in category.items %}
+          <tr>
+            <td class="text-muted">{{ item.item_number }}</td>
+            <td><strong>{{ item.name }}</strong></td>
+            <td
+              class="text-muted"
+              style="
+                font-size: 0.85rem;
+                max-width: 250px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+              "
+            >
+              {{ item.description or '-' }}
+            </td>
+            <td class="text-end fw-600">
+              Rs.{{ format_currency(item.price) }}
+            </td>
+            <td class="text-center">
+              <button
+                class="btn btn-sm {% if item.is_available %}btn-outline-success{% else %}btn-outline-secondary{% endif %}"
+                style="font-size: 0.78rem; padding: 2px 8px"
+                onclick="toggleAvailability({{ item.id }}, {% if item.is_available %}false{% else %}true{% endif %})"
+              >
+                {{ 'Yes' if item.is_available else 'No' }}
+              </button>
+            </td>
+            <td class="text-center">
+              <button
+                class="btn btn-sm {% if item.is_daily_special %}btn-outline-warning text-warning{% else %}btn-outline-secondary{% endif %}"
+                style="font-size: 0.78rem; padding: 2px 8px"
+                onclick="toggleDailySpecial({{ item.id }}, {% if item.is_daily_special %}false{% else %}true{% endif %})"
+              >
+                {% if item.is_daily_special %}★{% else %}☆{% endif %}
+              </button>
+            </td>
+            <td class="text-center">
+              <button
+                class="btn btn-sm btn-outline-secondary"
+                onclick="editItem({{ item.id }})"
+                title="Edit"
+              >
+                &#9998;
+              </button>
+              <button
+                class="btn btn-sm btn-outline-danger"
+                onclick="deleteItem({{ item.id }}, '{{ item.name }}')"
+                title="Delete"
+              >
+                &#10007;
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-3" style="font-size: 0.88rem">
+      No items in this category
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <p style="font-size: 2rem; opacity: 0.3; margin-bottom: 8px">&#9776;</p>
+  <p class="mb-0">No categories yet. Add a category to get started.</p>
+</div>
+{% endfor %}
+
+<!-- Add/Edit Item Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="itemModalTitle">Add Item</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <form id="itemForm" enctype="multipart/form-data">
+        <div class="modal-body">
+          <input type="hidden" id="editItemId" name="id" value="" />
+          <div class="mb-3">
+            <label
+              class="form-label"
+              style="font-size: 0.85rem; font-weight: 500"
+              >Name</label
+            >
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              id="itemName"
+              name="name"
+              required
+            />
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label
+                class="form-label"
+                style="font-size: 0.85rem; font-weight: 500"
+                >Category</label
+              >
+              <select
+                class="form-select form-select-sm"
+                id="itemCategory"
+                name="category_id"
+                required
+              >
+                <option value="">Select category</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-sm-3">
+              <label
+                class="form-label"
+                style="font-size: 0.85rem; font-weight: 500"
+                >Item #</label
+              >
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                id="itemNumber"
+                name="item_number"
+                required
+              />
+            </div>
+            <div class="col-sm-3">
+              <label
+                class="form-label"
+                style="font-size: 0.85rem; font-weight: 500"
+                >Price (Rs.)</label
+              >
+              <input
+                type="number"
+                class="form-control form-control-sm"
+                id="itemPrice"
+                name="price"
+                min="0"
+                step="0.5"
+                required
+              />
+            </div>
+          </div>
+          <div class="mb-3">
+            <label
+              class="form-label"
+              style="font-size: 0.85rem; font-weight: 500"
+              >Description</label
+            >
+            <textarea
+              class="form-control form-control-sm"
+              id="itemDescription"
+              name="description"
+              rows="2"
+            ></textarea>
+          </div>
+          <div class="mb-0">
+            <label
+              class="form-label"
+              style="font-size: 0.85rem; font-weight: 500"
+              >Image</label
+            >
+            <input
+              type="file"
+              class="form-control form-control-sm"
+              id="itemImage"
+              name="image"
+              accept="image/*"
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-sm btn-admin" id="itemSubmitBtn">
+            Add Item
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  var itemModal = new bootstrap.Modal(document.getElementById("addItemModal"));
+
+  // Add Category
+  function addCategory() {
+    var input = document.getElementById("newCategoryName");
+    var name = input.value.trim();
+    if (!name) {
+      input.focus();
+      return;
+    }
+
+    fetch("{{ url_for('admin_routes.add_category') }}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name }),
+    })
+      .then(function (r) {
+        if (r.ok) {
+          window.location.reload();
+        } else {
+          return r.json().then(function (e) {
+            alert(e.error || "Failed to add category");
+          });
+        }
+      })
+      .catch(function () {
+        alert("Network error.");
+      });
+  }
+
+  // Delete Category
+  function deleteCategory(categoryId, categoryName, itemCount) {
+    if (itemCount > 0) {
+      alert('Cannot delete "' + categoryName + '" because it contains ' + itemCount + ' menu item(s). Remove or reassign the items first.');
+      return;
+    }
+
+    if (!confirm('Delete the category "' + categoryName + '"? This cannot be undone.')) {
+      return;
+    }
+
+    fetch('/admin/api/menu/categories/' + categoryId, {
+      method: 'DELETE',
+    })
+      .then(function (r) {
+        return r.json().then(function (data) {
+          if (!r.ok) {
+            throw new Error(data.error || 'Failed to delete category.');
+          }
+          return data;
+        });
+      })
+      .then(function () {
+        window.location.reload();
+      })
+      .catch(function (err) {
+        alert(err.message || 'Network error.');
+      });
+  }
+
+  // Toggle Availability
+  function toggleAvailability(itemId, newVal) {
+    fetch("{{ url_for('admin_routes.update_menu_item', item_id=0) }}".replace('/0', '/' + itemId), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_available: newVal }),
+    })
+      .then(function (r) {
+        if (r.ok) {
+          window.location.reload();
+        } else {
+          alert("Failed to update availability.");
+        }
+      })
+      .catch(function () {
+        alert("Network error.");
+      });
+  }
+
+  // Toggle Daily Special
+  function toggleDailySpecial(itemId, newVal) {
+    fetch("{{ url_for('admin_routes.update_menu_item', item_id=0) }}".replace('/0', '/' + itemId), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_daily_special: newVal }),
+    })
+      .then(function (r) {
+        if (r.ok) {
+          window.location.reload();
+        } else {
+          alert("Failed to update daily special.");
+        }
+      })
+      .catch(function () {
+        alert("Network error.");
+      });
+  }
+
+  // Delete Item
+  function deleteItem(itemId, itemName) {
+    if (!confirm('Delete "' + itemName + '"? This cannot be undone.')) return;
+
+    fetch("{{ url_for('admin_routes.delete_menu_item', item_id=0) }}".replace('/0', '/' + itemId), {
+      method: "DELETE",
+    })
+      .then(function (r) {
+        if (r.ok) {
+          window.location.reload();
+        } else {
+          alert("Failed to delete item.");
+        }
+      })
+      .catch(function () {
+        alert("Network error.");
+      });
+  }
+
+  // Edit Item (populate modal)
+  function editItem(itemId) {
+    document.getElementById("editItemId").value = itemId;
+    document.getElementById("itemModalTitle").textContent = "Edit Item";
+    document.getElementById("itemSubmitBtn").textContent = "Save Changes";
+
+    // Find the row and populate
+    fetch("{{ url_for('admin_routes.update_menu_item', item_id=0) }}".replace('/0', '/' + itemId))
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (item) {
+        document.getElementById("itemName").value = item.name || "";
+        document.getElementById("itemCategory").value = item.category_id || "";
+        document.getElementById("itemNumber").value = item.item_number || "";
+        document.getElementById("itemPrice").value = item.price || "";
+        document.getElementById("itemDescription").value =
+          item.description || "";
+        itemModal.show();
+      })
+      .catch(function () {
+        alert("Failed to load item data.");
+      });
+  }
+
+  // Reset modal when adding new
+  document
+    .getElementById("addItemModal")
+    .addEventListener("show.bs.modal", function (e) {
+      if (!document.getElementById("editItemId").value) {
+        document.getElementById("itemForm").reset();
+        document.getElementById("itemModalTitle").textContent = "Add Item";
+        document.getElementById("itemSubmitBtn").textContent = "Add Item";
+      }
+    });
+
+  // Reset on modal close
+  document
+    .getElementById("addItemModal")
+    .addEventListener("hidden.bs.modal", function () {
+      document.getElementById("editItemId").value = "";
+      document.getElementById("itemForm").reset();
+      document.getElementById("itemModalTitle").textContent = "Add Item";
+      document.getElementById("itemSubmitBtn").textContent = "Add Item";
+    });
+
+  // Form submit
+  document.getElementById("itemForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var editId = document.getElementById("editItemId").value;
+    var formData = new FormData(this);
+    var url = editId ? "{{ url_for('admin_routes.update_menu_item', item_id=0) }}".replace('/0', '/' + editId) : "{{ url_for('admin_routes.add_menu_item') }}";
+    var method = editId ? "PATCH" : "POST";
+
+    fetch(url, {
+      method: method,
+      body: formData,
+    })
+      .then(function (r) {
+        if (r.ok) {
+          window.location.reload();
+        } else {
+          return r.json().then(function (e) {
+            alert(e.error || "Failed to save item");
+          });
+        }
+      })
+      .catch(function () {
+        alert("Network error.");
+      });
+  });
+
+  // Enter key for category input
+  document
+    .getElementById("newCategoryName")
+    .addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addCategory();
+      }
+    });
+</script>
+{% endblock %}

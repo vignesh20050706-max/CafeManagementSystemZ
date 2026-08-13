@@ -1,0 +1,172 @@
+/* ============================================================\n   base.css - Shared styles for Cafe Management System
+   ============================================================ */
+
+/* --- Custom Properties ------------------------------------ */
+:root {
+  --color-bg: #FAF9F7;
+  --color-surface: #FFFFFF;
+  --color-primary: #7C3F2C;
+  --color-primary-dark: #5F2F22;
+  --color-text: #222222;
+  --color-muted: #6B6B6B;
+  --color-border: #E8E5E1;
+  --color-success: #2E7D32;
+  --color-warning: #B7791F;
+  --color-danger: #C0392B;
+}
+
+/* --- Base / Reset ------------------------------------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-primary-dark);
+}
+
+/* --- Selection Color --------------------------------------- */
+::selection {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+}
+
+/* --- Focus Outlines ---------------------------------------- */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* --- Scrollbar --------------------------------------------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+/* --- Primary Button ---------------------------------------- */
+.btn-primary-custom {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  border: none;
+  padding: 0.6rem 1.4rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.btn-primary-custom:hover {
+  background-color: var(--color-primary-dark);
+  color: #FFFFFF;
+}
+
+.btn-primary-custom:active {
+  transform: scale(0.98);
+}
+
+.btn-primary-custom:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* --- Status Badges ----------------------------------------- */
+.badge-status {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.badge-status.pending {
+  background-color: #FFF3E0;
+  color: var(--color-warning);
+}
+
+.badge-status.confirmed {
+  background-color: #E3F2FD;
+  color: #1565C0;
+}
+
+.badge-status.preparing {
+  background-color: #F3E5F5;
+  color: #7B1FA2;
+}
+
+.badge-status.ready {
+  background-color: #E8F5E9;
+  color: var(--color-success);
+}
+
+.badge-status.completed {
+  background-color: #E8F5E9;
+  color: var(--color-success);
+}
+
+.badge-status.cancelled {
+  background-color: #FFEBEE;
+  color: var(--color-danger);
+}
+
+/* --- Utility Classes --------------------------------------- */
+.text-muted-custom {
+  color: var(--color-muted);
+}
+
+.text-primary-custom {
+  color: var(--color-primary);
+}
+
+.bg-surface {
+  background-color: var(--color-surface);
+}
+
+.border-custom {
+  border-color: var(--color-border);
+}

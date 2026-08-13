@@ -1,0 +1,134 @@
+from datetime import datetime, timezone, timedelta
+import secrets
+from database.database import db
+from models.order import Order, OrderItem, OrderStatus
+from models.menu import MenuItem
+from models.customer import Customer
+from models.payment import Payment, PaymentStatus
+
+
+def generate_order_id():
+    """Generate a collision-resistant public order ID.
+
+    The previous implementation read the latest order and added 1. Two
+    simultaneous checkouts could therefore receive the same ID before
+    either order was committed. Keep the human-readable date prefix, but
+    use a cryptographically random suffix so IDs do not depend on a
+    read-then-increment race.
+    """
+    today = datetime.now(timezone.utc).strftime('%Y%m%d')
+    prefix = f'ORD-{today}-'
+
+    # 8 hexadecimal characters provide 32 bits of entropy while keeping
+    # the ID short and easy to read. The database unique constraint remains
+    # the final authority on uniqueness.
+    return f'{prefix}{secrets.token_hex(4).upper()}'
+
+
+def create_order(customer_name, customer_mobile, order_type, cart_items, total_amount,
+                 special_instructions=None, email=None, whatsapp_number=None):
+    """Create a new order with items from cart."""
+    customer = Customer.find_or_create(
+        name=customer_name,
+        mobile=customer_mobile,
+        email=email,
+        whatsapp_number=whatsapp_number,
+    )
+
+    order_id = generate_order_id()
+    order = Order(
+        order_id=order_id,
+        customer_id=customer.id,
+        order_type=order_type,
+        status=OrderStatus.RECEIVED.value,
+        total_amount=total_amount,
+        special_instructions=special_instructions,
+    )
+    db.session.add(order)
+    db.session.flush()
+
+    for item in cart_items:
+        menu_item = MenuItem.query.get(item['menu_item_id'])
+        if not menu_item:
+            continue
+        order_item = OrderItem(
+            order_id=order.id,
+            menu_item_id=menu_item.id,
+            item_name=menu_item.name,
+            quantity=item['quantity'],
+            unit_price=menu_item.price,
+            subtotal=menu_item.price * item['quantity'],
+        )
+        db.session.add(order_item)
+
+    db.session.commit()
+    return order
+
+
+def get_order_by_public_id(public_id):
+    """Get order by the human-readable order_id."""
+    return Order.query.filter_by(order_id=public_id).first()
+
+
+def update_order_status(order, new_status: OrderStatus, estimated_minutes=None):
+    """Update order status with validation."""
+    if not order.can_transition_to(new_status):
+        raise ValueError(
+            f'Cannot transition from {order.status} to {new_status.value}'
+        )
+
+    order.status = new_status.value
+
+    if estimated_minutes is not None:
+        order.estimated_minutes = estimated_minutes
+        order.estimated_ready_time = datetime.now(timezone.utc) + timedelta(minutes=estimated_minutes)
+
+    db.session.commit()
+    return order
+
+
+def get_active_orders():
+    """Get all orders that are not yet delivered or rejected."""
+    active_statuses = [
+        OrderStatus.RECEIVED.value,
+        OrderStatus.ACCEPTED.value,
+        OrderStatus.PREPARING.value,
+        OrderStatus.READY.value,
+    ]
+    return Order.query.filter(Order.status.in_(active_statuses)).order_by(Order.created_at.desc()).all()
+
+
+def get_today_orders():
+    """Get all orders created today."""
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    return Order.query.filter(Order.created_at >= today_start).order_by(Order.created_at.desc()).all()
+
+
+def get_today_revenue():
+    """Get total revenue from paid orders today."""
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    paid_orders = Order.query.filter(
+        Order.created_at >= today_start,
+        Order.status.notin_([OrderStatus.REJECTED.value]),
+    ).all()
+    return sum(o.total_amount for o in paid_orders)
+
+
+def search_orders(query):
+    """Search orders by order_id, customer name, or mobile."""
+    q = f'%{query}%'
+    return Order.query.filter(
+        (Order.order_id.ilike(q)) |
+        (Order.customer.has(Customer.name.ilike(q))) |
+        (Order.customer.has(Customer.mobile.ilike(q)))
+    ).order_by(Order.created_at.desc()).limit(50).all()
+
+
+def cleanup_old_orders():
+    """Delete orders older than 30 days."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+    old_orders = Order.query.filter(Order.created_at < cutoff).all()
+    for order in old_orders:
+        db.session.delete(order)
+    db.session.commit()
+    return len(old_orders)

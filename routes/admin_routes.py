@@ -1,0 +1,398 @@
+import os
+import json
+import logging
+from datetime import datetime, timezone, timedelta
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session, send_file, current_app, stream_with_context
+from database.database import db
+from models.admin import Admin
+from models.order import Order, OrderItem, OrderStatus, VALID_TRANSITIONS
+from models.payment import Payment, PaymentStatus
+from models.menu import MenuCategory, MenuItem
+from models.cafe_status import CafeStatus
+from services import order_service, payment_service, notification_service, invoice_service
+from functools import wraps
+
+logger = logging.getLogger(__name__)
+
+PREDEFINED_REJECTION_REASONS = {
+    'Cafe is currently closed',
+    'Item(s) unavailable',
+    'High order volume',
+    'Unable to prepare the order at this time',
+    'Delivery/pickup issue',
+    'Payment/order verification issue',
+    'Technical problem',
+}
+
+admin_bp = Blueprint('admin_routes', __name__)
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'admin_id' not in session:
+            return redirect(url_for('admin_routes.login'))
+        return f(*args, **kwargs)
+    return decorated
+
+
+@admin_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        admin = Admin.query.filter_by(username=username).first()
+        if admin and admin.check_password(password):
+            session['admin_id'] = admin.id
+            session['admin_username'] = admin.username
+            return redirect(url_for('admin_routes.dashboard'))
+        return render_template('admin/login.html', error='Invalid credentials')
+    if 'admin_id' in session:
+        return redirect(url_for('admin_routes.dashboard'))
+    return render_template('admin/login.html')
+
+
+@admin_bp.route('/logout')
+def logout():
+    session.pop('admin_id', None)
+    session.pop('admin_username', None)
+    return redirect(url_for('admin_routes.login'))
+
+
+@admin_bp.route('/')
+@admin_bp.route('/dashboard')
+@admin_required
+def dashboard():
+    today_orders = order_service.get_today_orders()
+    today_revenue = order_service.get_today_revenue()
+    active_orders = order_service.get_active_orders()
+
+    new_count = len([o for o in active_orders if o.status == 'received'])
+    preparing_count = len([o for o in active_orders if o.status == 'preparing'])
+    ready_count = len([o for o in active_orders if o.status == 'ready'])
+
+    return render_template('admin/dashboard.html',
+                           today_orders=len(today_orders),
+                           today_revenue=today_revenue,
+                           new_count=new_count,
+                           preparing_count=preparing_count,
+                           ready_count=ready_count,
+                           active_orders=active_orders)
+
+
+@admin_bp.route('/orders')
+@admin_required
+def orders():
+    status_filter = request.args.get('status', '')
+    query = Order.query
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    all_orders = query.order_by(Order.created_at.desc()).limit(100).all()
+    return render_template('admin/orders.html', orders=all_orders, current_filter=status_filter)
+
+
+@admin_bp.route('/orders/<int:order_db_id>')
+@admin_required
+def order_detail(order_db_id):
+    order = Order.query.get_or_404(order_db_id)
+    return render_template('admin/order_details.html', order=order)
+
+
+@admin_bp.route('/api/orders/<int:order_db_id>/status', methods=['PATCH'])
+@admin_required
+def update_order_status(order_db_id):
+    order = Order.query.get_or_404(order_db_id)
+    data = request.get_json(silent=True) or request.form
+    new_status_str = data.get('status')
+    estimated_minutes = data.get('estimated_minutes')
+    rejection_reason = str(data.get('rejection_reason', '')).strip()
+
+    if not new_status_str:
+        return jsonify({'error': 'Status is required'}), 400
+
+    try:
+        new_status = OrderStatus(new_status_str)
+    except ValueError:
+        return jsonify({'error': 'Invalid status'}), 400
+
+    if new_status == OrderStatus.REJECTED and not rejection_reason:
+        return jsonify({'error': 'A rejection reason is required.'}), 400
+
+    try:
+        order_service.update_order_status(order, new_status, estimated_minutes)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+    refund_status = order.refund_status or 'not_required'
+
+    # Handle rejection: record reason and auto-refund.
+    if new_status == OrderStatus.REJECTED:
+        order.rejection_reason = rejection_reason
+        refund_status = 'not_required'
+        if order.payment:
+            refund_status = 'pending'
+            order.refund_status = refund_status
+            db.session.commit()
+            try:
+                payment_service.initiate_refund(order.payment)
+                refund_status = 'refunded'
+            except Exception as e:
+                logger.error(f'Refund failed for order {order.order_id}: {e}')
+                refund_status = 'refund_failed'
+            order.refund_status = refund_status
+        else:
+            order.refund_status = 'not_required'
+            refund_status = 'not_required'
+        db.session.commit()
+
+    # Notify customer
+    try:
+        notification_service.notify_order_status_change(order)
+    except Exception:
+        pass
+
+    # Generate invoice on acceptance
+    if new_status == OrderStatus.ACCEPTED:
+        try:
+            invoice_service.generate_invoice(order)
+        except Exception:
+            pass
+
+    return jsonify({
+        'success': True,
+        'status': order.status,
+        'rejection_reason': order.rejection_reason,
+        'refund_status': refund_status,
+    })
+
+
+@admin_bp.route('/menu')
+@admin_required
+def menu_management():
+    categories = MenuCategory.query.order_by(MenuCategory.display_order).all()
+    return render_template('admin/menu.html', categories=categories)
+
+
+@admin_bp.route('/api/menu/categories', methods=['POST'])
+@admin_required
+def add_category():
+    data = request.get_json(silent=True) or request.form
+    name = str(data.get('name', '')).strip()
+    if not name:
+        return jsonify({'error': 'Name required'}), 400
+
+    cat = MenuCategory(
+        name=name,
+        display_order=MenuCategory.query.count() + 1,
+    )
+    db.session.add(cat)
+    db.session.commit()
+    return jsonify({'success': True, 'id': cat.id})
+
+@admin_bp.route('/api/menu/categories/<int:category_id>', methods=['DELETE'])
+@admin_required
+def delete_category(category_id):
+    category = MenuCategory.query.get_or_404(category_id)
+
+    # Never delete a category that still contains menu items.
+    if category.items:
+        return jsonify({
+            'error': (
+                f'Cannot delete "{category.name}" because it contains '
+                f'{len(category.items)} menu item(s). Delete or move the items first.'
+            )
+        }), 409
+
+    db.session.delete(category)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': f'Category "{category.name}" deleted successfully.'
+    })
+
+
+@admin_bp.route('/api/menu/items', methods=['POST'])
+@admin_required
+def add_menu_item():
+    data = request.get_json(silent=True) or request.form
+
+    name = str(data.get('name', '')).strip()
+    category_raw = data.get('category_id')
+    price_raw = data.get('price')
+    item_number = str(data.get('item_number', '')).strip()
+    description = str(data.get('description', '')).strip()
+
+    try:
+        category_id = int(category_raw) if category_raw not in (None, '') else None
+        price = float(price_raw) if price_raw not in (None, '') else None
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid category or price'}), 400
+
+    if not name or category_id is None or price is None or not item_number:
+        return jsonify({'error': 'Required fields missing'}), 400
+
+    image_path = None
+    if 'image' in request.files and request.files['image'].filename:
+        from werkzeug.utils import secure_filename
+        filename = secure_filename(request.files['image'].filename)
+        upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
+        os.makedirs(upload_dir, exist_ok=True)
+        filepath = os.path.join(upload_dir, filename)
+        request.files['image'].save(filepath)
+        image_path = f'uploads/{filename}'
+
+    item = MenuItem(
+        category_id=category_id,
+        item_number=item_number,
+        name=name,
+        description=description or None,
+        price=price,
+        image=image_path,
+        is_available=True,
+    )
+    db.session.add(item)
+    db.session.commit()
+    return jsonify({'success': True, 'id': item.id})
+
+
+@admin_bp.route('/api/menu/items/<int:item_id>', methods=['GET', 'PATCH'])
+@admin_required
+def update_menu_item(item_id):
+    item = MenuItem.query.get_or_404(item_id)
+
+    if request.method == 'GET':
+        return jsonify(item.to_dict())
+
+    data = request.get_json(silent=True) or request.form
+
+    for field in ['name', 'description', 'item_number', 'is_available', 'is_daily_special', 'category_id']:
+        if field in data:
+            value = data.get(field)
+            if field in ['category_id'] and value not in (None, ''):
+                try:
+                    value = int(value)
+                except (TypeError, ValueError):
+                    return jsonify({'error': 'Invalid category'}), 400
+            elif field in ['is_available', 'is_daily_special'] and isinstance(value, str):
+                value = value.lower() in ('true', '1', 'yes', 'on')
+            setattr(item, field, value)
+
+    if 'price' in data:
+        try:
+            item.price = float(data.get('price'))
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Invalid price'}), 400
+
+    if 'image' in request.files and request.files['image'].filename:
+        from werkzeug.utils import secure_filename
+        filename = secure_filename(request.files['image'].filename)
+        upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
+        os.makedirs(upload_dir, exist_ok=True)
+        filepath = os.path.join(upload_dir, filename)
+        request.files['image'].save(filepath)
+        item.image = f'uploads/{filename}'
+    elif 'image' in data and data.get('image'):
+        item.image = data.get('image')
+
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@admin_bp.route('/api/menu/items/<int:item_id>', methods=['DELETE'])
+@admin_required
+def delete_menu_item(item_id):
+    item = MenuItem.query.get_or_404(item_id)
+    db.session.delete(item)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@admin_bp.route('/history')
+@admin_required
+def history():
+    query = request.args.get('q', '').strip()
+    if query:
+        orders = order_service.search_orders(query)
+    else:
+        orders = Order.query.order_by(Order.created_at.desc()).limit(50).all()
+    return render_template('admin/history.html', orders=orders, query=query)
+
+
+@admin_bp.route('/api/cafe-status', methods=['PATCH'])
+@admin_required
+def set_cafe_status():
+    data = request.get_json()
+    new_status = data.get('status')
+    if new_status not in ['open', 'closed', 'high_order_mode']:
+        return jsonify({'error': 'Invalid status'}), 400
+    CafeStatus.set_status(new_status)
+    return jsonify({'success': True})
+
+
+@admin_bp.route('/api/orders/events')
+@admin_required
+def order_events():
+    """SSE endpoint for real-time order updates."""
+
+    # Read the last known order ID before starting the
+    # streaming generator.
+    raw_last_id = request.args.get('last_id')
+
+    if raw_last_id is None:
+        newest = Order.query.order_by(Order.id.desc()).first()
+        last_id = newest.id if newest else 0
+    else:
+        try:
+            last_id = int(raw_last_id)
+        except (TypeError, ValueError):
+            last_id = 0
+
+    def generate():
+        import time
+
+        # Confirm that the SSE connection is alive.
+        yield ": connected\n\n"
+
+        current_last_id = last_id
+
+        while True:
+            time.sleep(2)
+
+            newest = (
+                Order.query
+                .order_by(Order.id.desc())
+                .first()
+            )
+
+            if newest and newest.id > current_last_id:
+
+                order = Order.query.get(newest.id)
+
+                if order:
+                    payload = {
+                        'type': 'new_order',
+                        'order': {
+                            **order.to_dict(),
+                            'id': order.id
+                        }
+                    }
+
+                    yield (
+                        f"data: {json.dumps(payload)}\n\n"
+                    )
+
+                    current_last_id = newest.id
+
+            else:
+                # Keep the SSE connection alive.
+                yield ": heartbeat\n\n"
+
+    return current_app.response_class(
+    stream_with_context(generate()),
+    mimetype='text/event-stream',
+    headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'
+    }
+)

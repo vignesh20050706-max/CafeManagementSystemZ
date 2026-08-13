@@ -1,0 +1,380 @@
+{% extends "admin/base.html" %}
+{% block title %}Order #{{ order.order_id }}{% endblock %}
+
+{% block content %}
+<!-- Back Link -->
+<a href="{{ url_for('admin_routes.orders') }}" class="d-inline-flex align-items-center gap-1 text-muted mb-3" style="font-size:0.88rem; text-decoration:none;">
+    &larr; Back to Orders
+</a>
+
+<!-- Order Header -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <h4 class="mb-1 fw-bold">Order #{{ order.order_id }}</h4>
+                <p class="text-muted mb-0" style="font-size:0.85rem;">{{ order.created_at.strftime('%d %b %Y, %I:%M %p') if order.created_at else '' }}</p>
+            </div>
+            <span class="badge bg-{{ status_color(order.status) }} fs-6" style="padding:6px 14px;">{{ status_label(order.status) }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Left Column: Order Info -->
+    <div class="col-lg-8">
+        <!-- Customer Info -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header">Customer Information</div>
+            <div class="card-body py-3">
+                <div class="row">
+                    <div class="col-sm-6 mb-2 mb-sm-0">
+                        <span class="text-muted" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.4px;">Name</span>
+                        <p class="mb-0 fw-600">{{ order.customer.name }}</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.4px;">Mobile</span>
+                        <p class="mb-0 fw-600">{{ order.customer.mobile }}</p>
+                        {% if order.customer.email %}
+                        <span class="text-muted mt-2" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.4px;">Email</span>
+                        <p class="mb-0 fw-600">{{ order.customer.email }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-sm-6 mb-2 mb-sm-0">
+                        <span class="text-muted" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.4px;">Order Type</span>
+                        <p class="mb-0 fw-600">{{ order.order_type|replace('_', ' ')|title }}</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.4px;">Payment</span>
+                        <p class="mb-0 fw-600">
+                            {% if order.payment %}
+                            <span class="badge bg-{{ 'success' if order.payment.status == 'success' else ('warning' if order.payment.status == 'pending' else 'secondary') }}">
+                                {{ order.payment.status|title }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Items -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header">Order Items</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th class="text-center" style="width:70px;">Qty</th>
+                                <th class="text-end" style="width:110px;">Unit Price</th>
+                                <th class="text-end" style="width:110px;">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items %}
+                            <tr>
+                                <td>{{ item.item_name }}</td>
+                                <td class="text-center">{{ item.quantity }}</td>
+                                <td class="text-end">Rs.{{ format_currency(item.unit_price) }}</td>
+                                <td class="text-end fw-600">Rs.{{ format_currency(item.quantity * item.unit_price) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end fw-bold" style="border-top:2px solid var(--admin-border);">Total</td>
+                                <td class="text-end fw-bold" style="border-top:2px solid var(--admin-border); font-size:1.05rem;">Rs.{{ format_currency(order.total_amount) }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Special Instructions -->
+        {% if order.special_instructions %}
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header">Special Instructions</div>
+            <div class="card-body">
+                <p class="mb-0" style="font-size:0.92rem;">{{ order.special_instructions }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column: Actions -->
+    <div class="col-lg-4">
+        <!-- Estimated Time -->
+        {% if order.estimated_ready_time %}
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header">Estimated Ready</div>
+            <div class="card-body text-center">
+                <p class="mb-0" style="font-size:1.6rem; font-weight:700; color:var(--admin-primary);">{{ order.estimated_ready_time.strftime('%I:%M %p') }}</p>
+                {% if order.estimated_minutes %}
+                <small class="text-muted">~{{ order.estimated_minutes }} min</small>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header">Actions</div>
+            <div class="card-body">
+                {% if order.status == 'received' %}
+                <div class="d-grid gap-2">
+                    <button class="btn btn-admin" onclick="updateOrderStatus('accepted')">&#10003; Accept Order</button>
+                    <button class="btn btn-outline-danger" onclick="openRejectOrderModal()">&#10007; Reject Order</button>
+                </div>
+
+                {% elif order.status == 'accepted' %}
+                <div class="mb-3">
+                    <label class="form-label" style="font-size:0.85rem; font-weight:500;">Estimated Minutes</label>
+                    <input type="number" id="estimatedMinutes" class="form-control form-control-sm" min="1" max="120" value="{{ order.estimated_minutes or 15 }}" placeholder="e.g. 15">
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-warning text-white" onclick="startPreparing()">&#9201; Start Preparing</button>
+                </div>
+
+                {% elif order.status == 'preparing' %}
+                <div class="mb-3">
+                    <label class="form-label" style="font-size:0.85rem; font-weight:500;">Estimated Minutes</label>
+                    <input type="number" id="estimatedMinutes" class="form-control form-control-sm" min="1" max="120" value="{{ order.estimated_minutes or 15 }}" placeholder="e.g. 15">
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" onclick="markReady()">&#10003; Mark Ready</button>
+                </div>
+
+                {% elif order.status == 'ready' %}
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" onclick="updateOrderStatus('delivered')">&#10003; Mark Delivered</button>
+                </div>
+
+                {% elif order.status == 'delivered' %}
+                <div class="text-center text-muted py-3">
+                    <p style="font-size:1.4rem; margin-bottom:4px;">&#10003;</p>
+                    <p class="mb-0" style="font-size:0.88rem;">Order completed</p>
+                </div>
+
+                {% elif order.status == 'rejected' %}
+                <div class="text-center text-muted py-3">
+                    <p style="font-size:1.4rem; margin-bottom:4px;">&#10007;</p>
+                    <p class="mb-0" style="font-size:0.88rem;">Order rejected</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+
+        <!-- Rejection Reason Modal -->
+        <div class="modal fade" id="rejectOrderModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Reject Order</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="rejectionReasonSelect" class="form-label fw-semibold">Reason for rejection</label>
+                        <select id="rejectionReasonSelect" class="form-select">
+                            <option value="" selected>Select a reason</option>
+                            <option>Cafe is currently closed</option>
+                            <option>Item(s) unavailable</option>
+                            <option>High order volume</option>
+                            <option>Unable to prepare the order at this time</option>
+                            <option>Delivery/pickup issue</option>
+                            <option>Payment/order verification issue</option>
+                            <option>Technical problem</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <div id="customRejectionReasonWrap" class="mt-3 d-none">
+                            <label for="customRejectionReason" class="form-label fw-semibold">Custom reason</label>
+                            <textarea id="customRejectionReason" class="form-control" rows="3" maxlength="500" placeholder="Enter the reason shown to the customer"></textarea>
+                        </div>
+                        <div id="rejectionReasonError" class="text-danger small mt-2 d-none"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" onclick="confirmRejectOrder()">Confirm Rejection</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timestamps -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header">Timeline</div>
+            <div class="card-body py-2" style="font-size:0.85rem;">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Created</span>
+                    <span>{{ order.created_at.strftime('%I:%M %p') if order.created_at else '-' }}</span>
+                </div>
+                {% if order.updated_at %}
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Last Updated</span>
+                    <span>{{ order.updated_at.strftime('%I:%M %p') if order.updated_at else '-' }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const ORDER_DB_ID = {{ order.id }};
+    const API_URL = "{{ url_for('admin_routes.update_order_status', order_db_id=order.id) }}";
+
+    var rejectModal = null;
+
+    function openRejectOrderModal() {
+        var modalElement = document.getElementById('rejectOrderModal');
+        var select = document.getElementById('rejectionReasonSelect');
+        var customWrap = document.getElementById('customRejectionReasonWrap');
+        var customInput = document.getElementById('customRejectionReason');
+        var error = document.getElementById('rejectionReasonError');
+
+        select.value = '';
+        customInput.value = '';
+        customWrap.classList.add('d-none');
+        error.classList.add('d-none');
+        error.textContent = '';
+
+        if (!rejectModal) {
+            rejectModal = new bootstrap.Modal(modalElement);
+        }
+        rejectModal.show();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var select = document.getElementById('rejectionReasonSelect');
+        if (!select) return;
+        select.addEventListener('change', function () {
+            var wrap = document.getElementById('customRejectionReasonWrap');
+            var input = document.getElementById('customRejectionReason');
+            var error = document.getElementById('rejectionReasonError');
+            var isOther = select.value === 'other';
+            wrap.classList.toggle('d-none', !isOther);
+            error.classList.add('d-none');
+            error.textContent = '';
+            if (!isOther) input.value = '';
+        });
+    });
+
+    function confirmRejectOrder() {
+        var select = document.getElementById('rejectionReasonSelect');
+        var custom = document.getElementById('customRejectionReason');
+        var error = document.getElementById('rejectionReasonError');
+        var reason = select.value === 'other' ? custom.value.trim() : select.value.trim();
+
+        if (!select.value) {
+            error.textContent = 'Please select a rejection reason.';
+            error.classList.remove('d-none');
+            return;
+        }
+        if (select.value === 'other' && !reason) {
+            error.textContent = 'Please enter a custom rejection reason.';
+            error.classList.remove('d-none');
+            custom.focus();
+            return;
+        }
+
+        if (rejectModal) rejectModal.hide();
+        updateOrderStatus('rejected', reason);
+    }
+
+    function updateOrderStatus(status, rejectionReason) {
+        var minutesInput = document.getElementById('estimatedMinutes');
+        var body = { status: status };
+        if (status === 'rejected') body.rejection_reason = rejectionReason || '';
+
+        if (minutesInput && minutesInput.value) {
+            body.estimated_minutes = parseInt(minutesInput.value);
+        }
+
+        fetch(API_URL, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+        .then(function(r) {
+            return r.json().catch(function() { return {}; }).then(function(data) {
+                if (r.ok) {
+                    window.location.reload();
+                    return;
+                }
+                alert(data.error || ('Unable to update order (HTTP ' + r.status + ').'));
+            });
+        })
+        .catch(function(error) {
+            console.error(error);
+            alert('Could not reach the server. Please check your connection and try again.');
+        });
+    }
+
+    function startPreparing() {
+        var minutesInput = document.getElementById('estimatedMinutes');
+        var minutes = minutesInput ? parseInt(minutesInput.value) : null;
+        if (!minutes || minutes < 1) {
+            alert('Please enter estimated minutes.');
+            if (minutesInput) minutesInput.focus();
+            return;
+        }
+        var body = { status: 'preparing', estimated_minutes: minutes };
+
+        fetch(API_URL, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+        .then(function(r) {
+            return r.json().catch(function() { return {}; }).then(function(data) {
+                if (r.ok) {
+                    window.location.reload();
+                    return;
+                }
+                alert(data.error || ('Unable to update order (HTTP ' + r.status + ').'));
+            });
+        })
+        .catch(function(error) {
+            console.error(error);
+            alert('Could not reach the server. Please check your connection and try again.');
+        });
+    }
+
+    function markReady() {
+        var minutesInput = document.getElementById('estimatedMinutes');
+        var minutes = minutesInput ? parseInt(minutesInput.value) : null;
+        var body = { status: 'ready' };
+        if (minutes && minutes >= 1) {
+            body.estimated_minutes = minutes;
+        }
+
+        fetch(API_URL, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+        .then(function(r) {
+            return r.json().catch(function() { return {}; }).then(function(data) {
+                if (r.ok) {
+                    window.location.reload();
+                    return;
+                }
+                alert(data.error || ('Unable to update order (HTTP ' + r.status + ').'));
+            });
+        })
+        .catch(function(error) {
+            console.error(error);
+            alert('Could not reach the server. Please check your connection and try again.');
+        });
+    }
+</script>
+{% endblock %}

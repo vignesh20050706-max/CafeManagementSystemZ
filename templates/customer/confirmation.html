@@ -1,0 +1,85 @@
+{% extends "customer/base.html" %}
+{% block title %}Payment Successful - {{ cafe_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    body { padding-bottom: 0 !important; }
+    .cafe-footer { position: relative; }
+    .success-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: var(--success);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.2rem;
+        animation: popIn 0.4s ease-out;
+    }
+    .success-icon::after {
+        content: '';
+        display: block;
+        width: 24px;
+        height: 42px;
+        border: solid #fff;
+        border-width: 0 4px 4px 0;
+        transform: rotate(45deg) translate(-2px, -4px);
+    }
+    @keyframes popIn {
+        0% { transform: scale(0); opacity: 0; }
+        60% { transform: scale(1.15); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    .info-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.3rem 0;
+        font-size: 0.85rem;
+    }
+    .info-row .label { color: var(--muted); }
+    .info-row .value { font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column align-items-center text-center py-4" style="max-width:420px;margin:0 auto;">
+    <!-- CSS-only Checkmark -->
+    <div class="success-icon"></div>
+
+    <h1 class="h4 fw-bold mb-1">Payment Successful</h1>
+    <p class="text-muted small mb-3">Your order has been placed successfully</p>
+
+    <div class="info-card w-100">
+        <div class="info-row">
+            <span class="label">Order ID</span>
+            <span class="value" style="color:var(--primary);">{{ order.order_id }}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Amount Paid</span>
+            <span class="value">Rs.{{ order.total_amount }}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Est. Preparation</span>
+            <span class="value">{{ order.estimated_prep_time }} min</span>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 w-100 mt-1">
+        <a href="/track/{{ order.order_id }}" class="btn btn-primary flex-fill py-2" style="border-radius:10px;">
+            &#128269; Track Order
+        </a>
+        <a href="/invoice/{{ order.order_id }}" class="btn btn-outline-primary flex-fill py-2" style="border-radius:10px;">
+            &#128196; Invoice
+        </a>
+    </div>
+
+    <a href="/" class="btn btn-link text-muted mt-3 small">Back to Home</a>
+</div>
+{% endblock %}

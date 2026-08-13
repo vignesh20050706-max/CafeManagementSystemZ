@@ -1,0 +1,86 @@
+{% extends "customer/base.html" %}
+{% block title %}My Orders - {{ cafe_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .order-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.9rem;
+        margin-bottom: 0.75rem;
+        transition: box-shadow 0.15s;
+    }
+    .order-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    .order-card .order-id {
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: var(--text);
+    }
+    .order-card .order-meta {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 0.15rem;
+    }
+    .order-card .order-bottom {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 0.6rem;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 0.2rem 0.55rem;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .status-received { background: #E3F2FD; color: #1565C0; }
+    .status-accepted { background: #FFF3E0; color: #E65100; }
+    .status-preparing { background: #FFF8E1; color: #F57F17; }
+    .status-ready { background: #E8F5E9; color: var(--success); }
+    .status-delivered { background: #E8F5E9; color: var(--success); }
+    .status-rejected { background: #FFEBEE; color: var(--danger); }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="h5 fw-bold mb-3">My Orders</h1>
+
+{% if orders and orders|length > 0 %}
+<div class="d-flex flex-column">
+    {% for order in orders %}
+    <div class="order-card">
+        <div class="d-flex align-items-start justify-content-between gap-2">
+            <div>
+                <div class="order-id">{{ order.order_id }}</div>
+                <div class="order-meta">
+                    {{ order.item_count }} item{{ 's' if order.item_count != 1 }} &middot; {{ order.order_type|replace('_','-')|title }}
+                    {% if order.created_at %} &middot; {{ order.created_at.strftime('%d %b, %I:%M %p') }}{% endif %}
+                </div>
+            </div>
+            <span class="status-badge status-{{ order.status }}">{{ order.status|replace('_',' ')|title }}</span>
+        </div>
+        <div class="order-bottom">
+            <div class="fw-bold" style="font-size:0.95rem;color:var(--primary);">Rs.{{ order.total_amount }}</div>
+            <a href="/track/{{ order.order_id }}" class="btn btn-sm btn-outline-primary" style="border-radius:8px;font-size:0.78rem;padding:0.3rem 0.8rem;">Track</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<a href="/" class="btn btn-link text-muted mt-2 small">Back to Home</a>
+
+{% else %}
+<!-- No Active Orders -->
+<div class="text-center py-5">
+    <div style="font-size:3rem;opacity:0.15;">&#128203;</div>
+    <h2 class="h6 mt-2 mb-1">No active orders</h2>
+    <p class="text-muted small mb-3">You haven't placed any orders yet.</p>
+    <a href="/menu" class="btn btn-primary px-4 py-2">Browse Menu</a>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "customer/base.html" %}
+{% block title %}{{ cafe_name }} - Order Fresh & Fast{% endblock %}
+
+{% block content %}
+
+{% if cafe_closed or high_order_mode %}
+<div id="cafe-status-banner" class="alert mb-3 py-2 px-3 {{ 'alert-warning' if high_order_mode else 'alert-danger' }}" role="alert">
+    <div class="d-flex align-items-center gap-2">
+        <span style="font-size:1.3rem;">{% if cafe_closed %}&#9888;{% else %}&#9203;{% endif %}</span>
+        <div>
+            <strong>{% if cafe_closed %}We're Currently Closed{% else %}High Demand Period{% endif %}</strong>
+            <div class="small mb-0" style="color:inherit;opacity:0.85;">
+                {% if cafe_closed %}
+                    Please check back later during our operating hours.
+                {% else %}
+                    Orders may take longer than usual. Thank you for your patience.
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Hero Section -->
+<section class="text-center py-4 py-md-5">
+    <div style="max-width:480px;margin:0 auto;">
+        <div style="font-size:3.5rem;line-height:1;margin-bottom:0.5rem;opacity:0.15;">&#9749;</div>
+        <h1 class="fw-bold mb-2" style="font-size:1.8rem;color:var(--primary);">{{ cafe_name }}</h1>
+        <p class="text-muted mb-4" style="font-size:1rem;line-height:1.5;">Freshly crafted food & beverages, made with love. Order now and enjoy!</p>
+        <a href="/order-type" class="btn btn-primary btn-lg px-5 py-3 fw-semibold" style="border-radius:12px;font-size:1.05rem;">
+            Order Now &#8594;
+        </a>
+    </div>
+</section>
+
+{% if daily_specials and daily_specials|length > 0 %}
+<!-- Daily Specials -->
+<section class="mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <h2 class="h6 fw-bold mb-0">&#9733; Daily Specials</h2>
+        <a href="/menu" class="small text-muted">See All</a>
+    </div>
+    <div class="d-flex gap-3 overflow-auto pb-2" style="scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;">
+        {% for item in daily_specials %}
+        <div class="flex-shrink-0" style="width:160px;scroll-snap-align:start;">
+            <a href="/menu" class="card border h-100 text-decoration-none" style="border-color:var(--border)!important;border-radius:12px;overflow:hidden;">
+                <div class="card-body p-2">
+                    <span class="badge badge-bg-warning mb-1" style="font-size:0.65rem;">SPECIAL</span>
+                    <div class="fw-semibold small" style="color:var(--text);line-height:1.3;">{{ item.name }}</div>
+                    <div class="mt-1 fw-bold" style="color:var(--primary);font-size:0.95rem;">Rs.{{ item.price }}</div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if categories and categories|length > 0 %}
+<!-- Quick Categories -->
+<section class="mb-4">
+    <h2 class="h6 fw-bold mb-3">Browse Categories</h2>
+    <div class="row g-2">
+        {% for cat in categories %}
+        <div class="col-4 col-md-3 col-lg-2">
+            <a href="/menu?category={{ cat.id }}" class="card border text-center text-decoration-none py-3" style="border-color:var(--border)!important;border-radius:12px;">
+                <div style="font-size:1.6rem;margin-bottom:0.25rem;opacity:0.6;">&#127858;</div>
+                <div class="small fw-medium" style="color:var(--text);">{{ cat.name }}</div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,265 @@
+{% extends "customer/base.html" %}
+{% block title %}Menu - {{ cafe_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Category Pills */
+    .cat-pills {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .cat-pills::-webkit-scrollbar { display: none; }
+    .cat-pill {
+        flex-shrink: 0;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        border: 1.5px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font-size: 0.82rem;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.15s;
+        text-decoration: none;
+    }
+    .cat-pill:hover { border-color: var(--primary); color: var(--primary); }
+    .cat-pill.active {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+    }
+
+    /* Item Card */
+    .menu-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fff;
+        padding: 0.85rem;
+        display: flex;
+        gap: 0.85rem;
+        align-items: flex-start;
+        transition: box-shadow 0.15s;
+    }
+    .menu-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    .menu-card.unavailable { opacity: 0.5; pointer-events: none; }
+    .menu-card .item-info { flex: 1; min-width: 0; }
+    .menu-card .item-number {
+        font-size: 0.72rem;
+        color: var(--muted);
+        font-weight: 600;
+    }
+    .menu-card .item-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--text);
+        margin-bottom: 0.15rem;
+    }
+    .menu-card .item-desc {
+        font-size: 0.78rem;
+        color: var(--muted);
+        line-height: 1.35;
+        margin-bottom: 0.4rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .menu-card .item-price {
+        font-weight: 700;
+        color: var(--primary);
+        font-size: 1rem;
+    }
+    .menu-card .item-actions { flex-shrink: 0; text-align: center; }
+
+    /* Qty Controls */
+    .qty-control {
+        display: inline-flex;
+        align-items: center;
+        border: 1.5px solid var(--primary);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .qty-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        color: var(--primary);
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+    .qty-btn:hover { background: rgba(124,63,44,0.08); }
+    .qty-val {
+        width: 28px;
+        text-align: center;
+        font-weight: 700;
+        font-size: 0.88rem;
+        color: var(--primary);
+    }
+    .add-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 8px;
+        background: var(--primary);
+        color: #fff;
+        font-size: 1.1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .add-btn:hover { background: #5a2d1e; }
+
+    .special-badge {
+        display: inline-block;
+        background: var(--warning);
+        color: #fff;
+        font-size: 0.62rem;
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        vertical-align: middle;
+        margin-left: 0.3rem;
+    }
+    .unavail-label {
+        font-size: 0.72rem;
+        color: var(--danger);
+        font-weight: 600;
+    }
+
+    /* Sticky Cart Bar */
+    .sticky-cart-bar {
+        position: fixed;
+        bottom: 52px;
+        left: 0;
+        right: 0;
+        background: var(--primary);
+        color: #fff;
+        padding: 0.7rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 1040;
+        box-shadow: 0 -2px 12px rgba(0,0,0,0.15);
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    .sticky-cart-bar:active { transform: scale(0.98); }
+    .sticky-cart-bar .cart-info { font-weight: 600; font-size: 0.9rem; }
+    .sticky-cart-bar .cart-total { font-weight: 700; font-size: 1rem; }
+    .sticky-cart-bar.hidden { transform: translateY(100%); }
+
+    /* No scroll padding when sticky bar is shown */
+    body.has-sticky-cart { padding-bottom: 110px !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if cafe_closed %}
+<div id="cafe-status-banner" class="alert alert-danger py-2 px-3 mb-3 small">
+    <strong>&#9888; We're Closed</strong> &mdash; You can browse the menu but ordering is currently unavailable.
+</div>
+{% endif %}
+
+<!-- Category Filter -->
+{% if categories and categories|length > 1 %}
+<div class="cat-pills mb-3">
+    <a class="cat-pill active" data-category="all" href="#">All</a>
+    {% for cat in categories %}
+    <a class="cat-pill" data-category="{{ cat.id }}" href="#">{{ cat.name }}</a>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Menu Items -->
+<div class="d-flex flex-column gap-2" id="menu-list">
+    {% for item in items %}
+    <div class="menu-card {% if not item.is_available %}unavailable{% endif %}"
+         data-category-id="{{ item.category_id }}"
+         data-item-id="{{ item.id }}"
+         data-item-name="{{ item.name }}"
+         data-item-price="{{ item.price }}"
+         data-item-number="{{ item.item_number }}">
+        <div class="item-info">
+            <div class="item-number">{{ item.item_number }}</div>
+            <div class="item-name">
+                {{ item.name }}
+                {% if item.is_daily_special %}<span class="special-badge">SPECIAL</span>{% endif %}
+            </div>
+            {% if item.description %}<div class="item-desc">{{ item.description }}</div>{% endif %}
+            <div class="item-price">Rs.{{ item.price }}</div>
+            {% if not item.is_available %}<div class="unavail-label mt-1">&#10060; Unavailable</div>{% endif %}
+        </div>
+        {% if item.is_available %}
+        <div class="item-actions">
+            <div class="qty-wrapper" data-item-id="{{ item.id }}"></div>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+{% if not items or items|length == 0 %}
+<div class="text-center py-5">
+    <div style="font-size:2.5rem;opacity:0.2;">&#128230;</div>
+    <p class="text-muted mt-2">No menu items available right now.</p>
+</div>
+{% endif %}
+
+<!-- Sticky Cart Bar -->
+<div class="sticky-cart-bar hidden" id="sticky-cart-bar" onclick="window.location.href='/cart'">
+    <span class="cart-info" id="sticky-cart-info">0 items</span>
+    <span class="cart-total" id="sticky-cart-total">Rs.0</span>
+    <span style="opacity:0.7;font-size:0.8rem;">View Cart &#8594;</span>
+</div>
+
+<script src="/static/js/customer.js"></script>
+<script>
+// Category filter
+(function() {
+    var pills = document.querySelectorAll('.cat-pill');
+    var cards = document.querySelectorAll('.menu-card');
+    pills.forEach(function(pill) {
+        pill.addEventListener('click', function(e) {
+            e.preventDefault();
+            pills.forEach(function(p) { p.classList.remove('active'); });
+            pill.classList.add('active');
+            var cat = pill.getAttribute('data-category');
+            cards.forEach(function(card) {
+                if (cat === 'all' || card.getAttribute('data-category-id') === cat) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+
+    // Activate pill from URL param
+    var params = new URLSearchParams(window.location.search);
+    var catParam = params.get('category');
+    if (catParam) {
+        pills.forEach(function(p) {
+            p.classList.remove('active');
+            if (p.getAttribute('data-category') === catParam) p.classList.add('active');
+        });
+        cards.forEach(function(card) {
+            card.style.display = card.getAttribute('data-category-id') === catParam ? '' : 'none';
+        });
+    }
+})();
+</script>
+{% endblock %}

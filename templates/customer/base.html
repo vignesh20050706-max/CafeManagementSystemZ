@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ cafe_name }}{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/customer.css">
+    <style>
+        :root {
+            --primary: #7C3F2C;
+            --bg: #FAF9F7;
+            --text: #222222;
+            --muted: #6B6B6B;
+            --border: #E8E5E1;
+            --success: #2E7D32;
+            --warning: #B7791F;
+            --danger: #C0392B;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding-bottom: 70px;
+            min-height: 100vh;
+        }
+        a { color: var(--primary); text-decoration: none; }
+        a:hover { color: #5a2d1e; }
+
+        /* Navbar */
+        .cafe-navbar {
+            background: var(--primary);
+            color: #fff;
+            padding: 0.6rem 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1030;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+        .cafe-navbar .navbar-brand {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.2rem;
+            letter-spacing: 0.3px;
+        }
+        .cafe-navbar .nav-link {
+            color: rgba(255,255,255,0.85);
+            font-size: 0.9rem;
+            padding: 0.4rem 0.7rem;
+            position: relative;
+        }
+        .cafe-navbar .nav-link:hover,
+        .cafe-navbar .nav-link.active {
+            color: #fff;
+        }
+        .cart-badge {
+            position: absolute;
+            top: 2px;
+            right: 0;
+            background: var(--warning);
+            color: #fff;
+            font-size: 0.65rem;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+        .cart-badge:empty,
+        .cart-badge[data-count="0"] { display: none; }
+
+        /* Footer */
+        .cafe-footer {
+            background: var(--primary);
+            color: rgba(255,255,255,0.8);
+            text-align: center;
+            padding: 1.2rem 1rem;
+            font-size: 0.82rem;
+            margin-top: 2rem;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1020;
+        }
+        .cafe-footer a { color: rgba(255,255,255,0.9); }
+
+        /* Buttons */
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        .btn-primary:hover { background: #5a2d1e; border-color: #5a2d1e; }
+        .btn-outline-primary {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        .btn-outline-primary:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+        .btn-success { background: var(--success); border-color: var(--success); }
+        .btn-danger { background: var(--danger); border-color: var(--danger); }
+        .btn-warning { background: var(--warning); border-color: var(--warning); color: #fff; }
+
+        /* Utility */
+        .text-muted { color: var(--muted) !important; }
+        .text-primary { color: var(--primary) !important; }
+        .border-top, .border-bottom { border-color: var(--border) !important; }
+        .badge { font-weight: 600; }
+        .badge-bg-primary { background: var(--primary); }
+        .badge-bg-success { background: var(--success); }
+        .badge-bg-warning { background: var(--warning); }
+        .badge-bg-danger { background: var(--danger); }
+        .badge-bg-muted { background: var(--border); color: var(--muted); }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="cafe-navbar">
+        <div class="container-fluid d-flex align-items-center justify-content-between">
+            <a class="navbar-brand" href="/">{{ cafe_name }}</a>
+            <div class="d-flex align-items-center gap-1">
+                <a class="nav-link" href="/menu">Menu</a>
+                <a class="nav-link" href="/orders">Orders</a>
+                <a class="nav-link position-relative" href="/cart">
+                    &#128722; Cart
+                    <span class="cart-badge" id="nav-cart-badge"></span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container py-3">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="cafe-footer">
+        <div>&copy; {{ cafe_name }} &mdash; All rights reserved.</div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Update cart badge on all pages
+        (function() {
+            function updateBadge() {
+                try {
+                    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+                    const count = cart.reduce(function(s, i) { return s + i.quantity; }, 0);
+                    var badge = document.getElementById('nav-cart-badge');
+                    if (badge) {
+                        badge.textContent = count > 0 ? count : '';
+                        badge.setAttribute('data-count', count);
+                    }
+                } catch(e) {}
+            }
+            updateBadge();
+            window.addEventListener('storage', updateBadge);
+            window.addEventListener('cartUpdated', updateBadge);
+        })();
+    </script>
+
+    <script>
+        (function() {
+            var lastCafeStatus = {{ cafe_status|tojson }};
+
+            function renderCafeStatus(status, notify) {
+                var banner = document.getElementById('cafe-status-banner');
+                if (!banner) {
+                    banner = document.createElement('div');
+                    banner.id = 'cafe-status-banner';
+                    banner.className = 'container mt-3';
+                    var main = document.querySelector('main');
+                    if (main && main.parentNode) {
+                        main.parentNode.insertBefore(banner, main);
+                    }
+                }
+
+                if (!banner) return;
+
+                if (status === 'closed') {
+                    banner.innerHTML = '<div class="alert alert-danger py-2 px-3 mb-0 small"><strong>&#9888; We're Currently Closed</strong><div>Please check back later during our operating hours. Ordering is currently unavailable.</div></div>';
+                    banner.style.display = '';
+                } else if (status === 'high_order_mode') {
+                    banner.innerHTML = '<div class="alert alert-warning py-2 px-3 mb-0 small"><strong>&#9203; High Demand Period</strong><div>We are currently handling a high number of orders. Your order may take longer than usual.</div></div>';
+                    banner.style.display = '';
+                } else {
+                    banner.innerHTML = '';
+                    banner.style.display = 'none';
+                }
+
+                if (notify && lastCafeStatus !== status) {
+                    var message = status === 'closed'
+                        ? 'The cafe is now closed. New orders are unavailable.'
+                        : status === 'high_order_mode'
+                            ? 'The cafe is experiencing high order volume. Orders may take longer than usual.'
+                            : 'The cafe is now open and accepting orders.';
+                    var toast = document.createElement('div');
+                    toast.textContent = message;
+                    toast.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:.55rem 1rem;border-radius:8px;font-size:.82rem;font-weight:600;z-index:1060;max-width:90vw;text-align:center;';
+                    document.body.appendChild(toast);
+                    setTimeout(function(){ toast.remove(); }, 3500);
+                }
+                lastCafeStatus = status;
+            }
+
+            renderCafeStatus(lastCafeStatus, false);
+            setInterval(function() {
+                fetch('/api/cafe-status')
+                    .then(function(r) { return r.ok ? r.json() : null; })
+                    .then(function(data) { if (data) renderCafeStatus(data.status, true); })
+                    .catch(function() {});
+            }, 10000);
+        })();
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

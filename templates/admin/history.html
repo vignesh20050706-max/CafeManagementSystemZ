@@ -1,0 +1,66 @@
+{% extends "admin/base.html" %}
+{% block title %}Order History{% endblock %}
+
+{% block content %}
+<!-- Search Bar -->
+<div class="row mb-4">
+    <div class="col-md-6 col-lg-5">
+        <form method="GET" action="{{ url_for('admin_routes.history') }}">
+            <div class="input-group">
+                <input type="text" class="form-control" name="q" value="{{ query or '' }}" placeholder="Search by order ID, customer name, or mobile...">
+                <button class="btn btn-admin" type="submit">Search</button>
+                {% if query %}
+                <a href="{{ url_for('admin_routes.history') }}" class="btn btn-outline-secondary" title="Clear search">&#10007;</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if query %}
+<div class="mb-3">
+    <span class="text-muted" style="font-size:0.85rem;">Showing results for "<strong>{{ query }}</strong>"</span>
+</div>
+{% endif %}
+
+<!-- Orders Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        {% if orders and orders|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Type</th>
+                        <th class="text-end">Total</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr style="cursor:pointer;" onclick="window.location='{{ url_for('admin_routes.order_detail', order_db_id=order.id) }}'">
+                        <td><strong>#{{ order.order_id }}</strong></td>
+                        <td>{{ order.customer.name }}</td>
+                        <td>{{ order.order_type|replace('_', ' ')|title }}</td>
+                        <td class="text-end fw-600">Rs.{{ format_currency(order.total_amount) }}</td>
+                        <td>
+                            <span class="badge bg-{{ status_color(order.status) }}">{{ status_label(order.status) }}</span>
+                        </td>
+                        <td class="text-muted" style="font-size:0.85rem;">{{ order.created_at.strftime('%d %b %Y, %I:%M %p') if order.created_at else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <p style="font-size:2rem; opacity:0.3; margin-bottom:8px;">&#128203;</p>
+            <p class="mb-0">{% if query %}No orders found for "{{ query }}"{% else %}No order history yet{% endif %}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

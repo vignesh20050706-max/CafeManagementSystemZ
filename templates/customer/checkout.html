@@ -1,0 +1,290 @@
+{% extends "customer/base.html" %} {% block title %}Checkout - {{ cafe_name }}{%
+endblock %} {% block extra_head %}
+<style>
+  .checkout-section {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  .checkout-section h2 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .form-control,
+  .form-select {
+    border-color: var(--border);
+    border-radius: 8px;
+    font-size: 0.88rem;
+    padding: 0.55rem 0.75rem;
+  }
+  .form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(124, 63, 44, 0.12);
+  }
+  .form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+  }
+  .form-check-input:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0;
+    font-size: 0.85rem;
+  }
+  .summary-row.total {
+    border-top: 1.5px solid var(--border);
+    padding-top: 0.6rem;
+    margin-top: 0.3rem;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  .pay-btn {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.8rem;
+    font-size: 1rem;
+    font-weight: 700;
+    width: 100%;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .pay-btn:hover {
+    background: #5a2d1e;
+  }
+  .pay-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .validation-msg {
+    font-size: 0.78rem;
+    color: var(--danger);
+    margin-top: 0.25rem;
+    display: none;
+  }
+</style>
+{% endblock %} {% block content %}
+<h1 class="h5 fw-bold mb-3">Checkout</h1>
+
+<!-- Order Summary -->
+<div class="checkout-section">
+  <h2>&#128230; Order Summary</h2>
+  <div id="checkout-summary"></div>
+</div>
+
+<!-- Customer Details -->
+<div class="checkout-section">
+  <h2>&#128100; Your Details</h2>
+  <form id="checkout-form" novalidate>
+    <div class="row g-2 mb-2">
+      <div class="col-12">
+        <label class="form-label" for="cust-name"
+          >Name <span class="text-danger">*</span></label
+        >
+        <input
+          type="text"
+          class="form-control"
+          id="cust-name"
+          name="name"
+          required
+          maxlength="100"
+          placeholder="Enter your name"
+        />
+        <div class="validation-msg" id="err-name">Name is required.</div>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="cust-mobile"
+          >Mobile <span class="text-danger">*</span></label
+        >
+        <input
+          type="tel"
+          class="form-control"
+          id="cust-mobile"
+          name="mobile"
+          required
+          maxlength="10"
+          pattern="[0-9]{10}"
+          placeholder="10-digit mobile number"
+        />
+        <div class="validation-msg" id="err-mobile">
+          Enter a valid 10-digit mobile number.
+        </div>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="cust-email"
+          >Email <small class="text-muted">(optional)</small></label
+        >
+        <input
+          type="email"
+          class="form-control"
+          id="cust-email"
+          name="email"
+          placeholder="your@email.com"
+        />
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="cust-whatsapp"
+          >WhatsApp <span class="text-danger">*</span></label
+        >
+        <input
+          type="tel"
+          class="form-control"
+          id="cust-whatsapp"
+          name="whatsapp"
+          maxlength="10"
+          placeholder="WhatsApp number"
+        />
+        <div class="form-check mt-2">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="chk-whatsapp-same"
+          />
+          <label class="form-check-label small" for="chk-whatsapp-same">
+            WhatsApp number is the same as mobile number
+          </label>
+        </div>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="cust-instructions"
+          >Special Instructions
+          <small class="text-muted">(optional)</small></label
+        >
+        <textarea
+          class="form-control"
+          id="cust-instructions"
+          name="special_instructions"
+          rows="2"
+          placeholder="Any special requests?"
+          style="resize: vertical"
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- Terms -->
+    <div class="mb-2">
+      <div class="form-check">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="chk-terms"
+          required
+        />
+        <label class="form-check-label small" for="chk-terms">
+          I agree to the
+          <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal"
+            >Terms &amp; Conditions</a
+          >
+          <span class="text-danger">*</span>
+        </label>
+      </div>
+      <div class="validation-msg" id="err-terms">
+        You must agree to the Terms & Conditions.
+      </div>
+    </div>
+    <div class="mb-3">
+      <div class="form-check">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="chk-refund"
+          required
+        />
+        <label class="form-check-label small" for="chk-refund">
+          I have read and agree to the
+          <a href="#" data-bs-toggle="modal" data-bs-target="#refundModal"
+            >Refund Policy</a
+          >
+          <span class="text-danger">*</span>
+        </label>
+      </div>
+      <div class="validation-msg" id="err-refund">
+        You must agree to the Refund Policy.
+      </div>
+    </div>
+
+    <button type="submit" class="pay-btn" id="pay-btn">
+      Pay Rs.<span id="pay-amount">0</span>
+    </button>
+  </form>
+</div>
+
+<!-- Terms Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content" style="border-radius: 14px; border: none">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title h6 fw-bold">Terms &amp; Conditions</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body small text-muted">
+        <p>
+          By placing an order, you agree to our terms of service. All orders are
+          subject to availability. The cafe reserves the right to reject any
+          order. Delivery times are estimates and may vary based on order
+          volume.
+        </p>
+        <p>
+          Once an order is accepted and preparation begins, cancellations may
+          not be possible. Please review your order carefully before proceeding
+          to payment.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Refund Modal -->
+<div class="modal fade" id="refundModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content" style="border-radius: 14px; border: none">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title h6 fw-bold">Refund Policy</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body small text-muted">
+        <p>
+          If your order is rejected by the cafe, a full refund will be initiated
+          to your original payment method within 5-7 business days.
+        </p>
+        <p>
+          For quality-related issues, please contact us immediately. Refund
+          requests must be made within 30 minutes of order pickup/delivery.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Empty cart redirect handled by JS -->
+<div id="checkout-empty" class="text-center py-5 d-none">
+  <div style="font-size: 3rem; opacity: 0.15">&#128722;</div>
+  <h2 class="h6 mt-2 mb-1">Your cart is empty</h2>
+  <p class="text-muted small mb-3">Add items before checking out.</p>
+  <a href="/menu" class="btn btn-primary px-4 py-2">Browse Menu</a>
+</div>
+
+<script src="/static/js/checkout.js"></script>
+{% endblock %}

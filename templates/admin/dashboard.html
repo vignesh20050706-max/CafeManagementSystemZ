@@ -1,0 +1,178 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block topbar_extra %}
+<div class="d-flex align-items-center gap-2">
+    <span class="text-muted" style="font-size:0.82rem;">Cafe Status:</span>
+    <div class="btn-group btn-group-sm" id="cafeStatusGroup">
+        <button type="button" class="btn btn-outline-success cafe-status-btn" data-status="open" onclick="setCafeStatus('open')">Open</button>
+        <button type="button" class="btn btn-outline-warning cafe-status-btn" data-status="high_order_mode" onclick="setCafeStatus('high_order_mode')">Busy</button>
+        <button type="button" class="btn btn-outline-secondary cafe-status-btn" data-status="closed" onclick="setCafeStatus('closed')">Closed</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Today's Orders</p>
+                        <h3 class="mb-0 fw-bold">{{ today_orders }}</h3>
+                    </div>
+                    <span style="font-size:1.6rem; color:var(--admin-primary); opacity:0.6;">&#9993;</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Today's Revenue</p>
+                        <h3 class="mb-0 fw-bold">Rs.{{ today_revenue }}</h3>
+                    </div>
+                    <span style="font-size:1.6rem; color:var(--admin-success); opacity:0.6;">&#8377;</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Preparing</p>
+                        <h3 class="mb-0 fw-bold" style="color:var(--admin-warning);">{{ preparing_count }}</h3>
+                    </div>
+                    <span style="font-size:1.6rem; color:var(--admin-warning); opacity:0.6;">&#9201;</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Ready for Pickup</p>
+                        <h3 class="mb-0 fw-bold" style="color:var(--admin-success);">{{ ready_count }}</h3>
+                    </div>
+                    <span style="font-size:1.6rem; color:var(--admin-success); opacity:0.6;">&#10003;</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Orders -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Active Orders</span>
+        <span class="badge rounded-pill" style="background-color:var(--admin-primary);">{{ active_orders|length if active_orders is defined else 0 }}</span>
+    </div>
+    <div class="card-body p-0">
+        {% if active_orders and active_orders|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Mobile</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                        <th>Time</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in active_orders %}
+                    <tr>
+                        <td><strong>#{{ order.order_id }}</strong></td>
+                        <td>{{ order.customer.name }}</td>
+                        <td>****{{ order.customer.mobile[-4:] }}</td>
+                        <td>
+                            {% if order.order_type == 'dine_in' %}
+                                <span class="text-muted">Dine-in</span>
+                            {% elif order.order_type == 'takeaway' %}
+                                <span class="text-muted">Takeaway</span>
+                            {% else %}
+                                {{ order.order_type|replace('_', ' ')|title }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ status_color(order.status) }}">{{ status_label(order.status) }}</span>
+                        </td>
+                        <td><strong>Rs.{{ format_currency(order.total_amount) }}</strong></td>
+                        <td class="text-muted" style="font-size:0.85rem;">{{ time_ago(order.created_at) }}</td>
+                        <td>
+                            <a href="{{ url_for('admin_routes.order_detail', order_db_id=order.id) }}" class="btn btn-sm btn-outline-secondary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <p style="font-size:2rem; opacity:0.3; margin-bottom:8px;">&#9993;</p>
+            <p class="mb-0">No active orders right now</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- New order notification sound -->
+<audio id="newOrderSound" preload="auto">
+    <source src="{{ url_for('static', filename='audio/notification.mp3') }}" type="audio/mpeg">
+</audio>
+<script>
+    // Play notification sound
+    function playNotificationSound() {
+        const audio = document.getElementById('newOrderSound');
+        if (audio) {
+            audio.currentTime = 0;
+            audio.play().catch(function() {});
+        }
+    }
+
+    // Cafe status management
+    function setCafeStatus(status) {
+        fetch('{{ url_for("admin_routes.set_cafe_status") }}', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: status })
+        }).then(function(r) {
+            if (r.ok) { updateStatusButtons(status); }
+        });
+    }
+
+    function updateStatusButtons(currentStatus) {
+        document.querySelectorAll('.cafe-status-btn').forEach(function(btn) {
+            var s = btn.getAttribute('data-status');
+            btn.classList.remove('active');
+            if (s === currentStatus) {
+                btn.classList.add('active');
+            }
+        });
+    }
+
+    // Initialize status button from server state
+    (function() {
+        var currentStatus = '{{ cafe_status }}';
+        if (currentStatus) { updateStatusButtons(currentStatus); }
+    })();
+
+    // SSE connection for live updates handled in admin.js
+    // If admin.js is loaded, it will connect to /admin/api/orders/events
+</script>
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

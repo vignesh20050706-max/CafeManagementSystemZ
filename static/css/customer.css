@@ -1,0 +1,578 @@
+/* ============================================================
+   customer.css - Customer-facing pages (mobile-first)
+   ============================================================ */
+
+/* --- Navbar ------------------------------------------------ */
+.customer-navbar {
+  position: sticky;
+  top: 0;
+ z-index: 1030;
+  background-color: var(--color-surface);
+  box-shadow: 0 1px 0 var(--color-border);
+  padding: 0.75rem 1rem;
+}
+
+.customer-navbar .navbar-brand {
+  color: var(--color-primary);
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.customer-navbar .nav-link {
+  color: var(--color-text);
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.customer-navbar .nav-link:hover,
+.customer-navbar .nav-link.active {
+  color: var(--color-primary);
+  background-color: rgba(124, 63, 44, 0.06);
+}
+
+/* --- Hero Section ------------------------------------------ */
+.hero-section {
+  background: linear-gradient(135deg, rgba(124, 63, 44, 0.06) 0%, rgba(95, 47, 34, 0.03) 100%);
+  padding: 2.5rem 1rem;
+  text-align: center;
+}
+
+.hero-section h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+}
+
+.hero-section p {
+  color: var(--color-muted);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* --- Category Pills ---------------------------------------- */
+.category-pills {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.75rem 1rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.category-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.category-pill {
+  flex-shrink: 0;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.category-pill:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.category-pill.active {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  border-color: var(--color-primary);
+}
+
+/* --- Menu Cards -------------------------------------------- */
+.menu-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  padding: 0 1rem 6rem;
+}
+
+.menu-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 1rem;
+  transition: box-shadow 0.2s ease;
+  position: relative;
+}
+
+.menu-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.menu-card-name {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.2rem;
+}
+
+.menu-card-desc {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.menu-card-price {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-primary);
+}
+
+/* Daily special ribbon badge */
+.menu-card-badge {
+  position: absolute;
+  top: -1px;
+  right: 12px;
+  background-color: var(--color-warning);
+  color: #FFFFFF;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem 0.25rem;
+  border-radius: 0 0 6px 6px;
+  letter-spacing: 0.03em;
+}
+
+/* --- Quantity Controls ------------------------------------- */
+.qty-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.qty-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+  padding: 0;
+}
+
+.qty-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.qty-btn:active {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  border-color: var(--color-primary);
+}
+
+.qty-value {
+  font-weight: 600;
+  font-size: 0.95rem;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+/* --- Sticky Cart Bar --------------------------------------- */
+.sticky-cart-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 1040;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.sticky-cart-bar .cart-count {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+}
+
+.sticky-cart-bar .btn-view-cart {
+  background-color: #FFFFFF;
+  color: var(--color-primary);
+  border: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.sticky-cart-bar .btn-view-cart:hover {
+  opacity: 0.9;
+}
+
+/* --- Cart Page --------------------------------------------- */
+.cart-list {
+ list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.cart-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cart-item:last-child {
+  border-bottom: none;
+}
+
+.cart-item-info {
+  flex: 1;
+}
+
+.cart-item-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.cart-item-price {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.cart-summary {
+  padding: 1.25rem 0;
+  border-top: 2px solid var(--color-border);
+}
+
+.cart-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* --- Checkout Form ----------------------------------------- */
+.checkout-form .form-label {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  margin-bottom: 0.3rem;
+}
+
+.checkout-form .form-control,
+.checkout-form .form-select {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.checkout-form .form-control:focus,
+.checkout-form .form-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(124, 63, 44, 0.1);
+}
+
+/* --- Tracking Stepper -------------------------------------- */
+.tracking-stepper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.5rem 0;
+  position: relative;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  flex: 1;
+  max-width: 120px;
+}
+
+.step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  z-index: 1;
+  transition: all 0.25s ease;
+}
+
+.step-item.active .step-circle {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.step-item.completed .step-circle {
+  border-color: var(--color-success);
+  background-color: var(--color-success);
+  color: #FFFFFF;
+}
+
+.step-label {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  text-align: center;
+  font-weight: 500;
+}
+
+.step-item.active .step-label,
+.step-item.completed .step-label {
+  color: var(--color-text);
+}
+
+/* Connecting line between steps */
+.step-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 18px;
+  left: calc(50% + 22px);
+  width: calc(100% - 44px);
+  height: 2px;
+  background-color: var(--color-border);
+  z-index: 0;
+}
+
+.step-item.completed:not(:last-child)::after {
+  background-color: var(--color-success);
+}
+
+/* --- Confirmation Page ------------------------------------- */
+.confirmation-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.confirmation-check {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background-color: var(--color-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  animation: confirmPop 0.4s ease-out;
+}
+
+.confirmation-check svg {
+  width: 36px;
+  height: 36px;
+  stroke: #FFFFFF;
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@keyframes confirmPop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.confirmation-page h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.confirmation-page p {
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}
+
+/* --- Buttons ----------------------------------------------- */
+.btn-secondary-outline {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 0.6rem 1.4rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary-outline:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: rgba(124, 63, 44, 0.04);
+}
+
+/* --- Toast Notifications ----------------------------------- */
+.toast-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1060;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.custom-toast {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  animation: toastIn 0.25s ease-out;
+  max-width: 320px;
+}
+
+.custom-toast.toast-success {
+  border-left: 3px solid var(--color-success);
+}
+
+.custom-toast.toast-warning {
+  border-left: 3px solid var(--color-warning);
+}
+
+.custom-toast.toast-error {
+  border-left: 3px solid var(--color-danger);
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* --- Banners ----------------------------------------------- */
+.cafe-banner {
+  padding: 0.6rem 1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.cafe-banner.closed {
+  background-color: #FFEBEE;
+  color: var(--color-danger);
+}
+
+.cafe-banner.high-order {
+  background-color: #FFF8E1;
+  color: var(--color-warning);
+}
+
+/* --- Responsive: Tablet ------------------------------------ */
+@media (min-width: 768px) {
+  .hero-section {
+    padding: 3rem 2rem;
+  }
+
+  .hero-section h1 {
+    font-size: 1.8rem;
+  }
+
+  .menu-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 1.5rem 6rem;
+    gap: 1rem;
+  }
+
+  .category-pills {
+    justify-content: center;
+    padding: 1rem 1.5rem;
+  }
+
+  .confirmation-page {
+    min-height: 70vh;
+  }
+
+  .step-item {
+    max-width: 140px;
+  }
+}
+
+/* --- Responsive: Desktop ----------------------------------- */
+@media (min-width: 1024px) {
+  .hero-section {
+    padding: 3.5rem 2rem;
+  }
+
+  .hero-section h1 {
+    font-size: 2rem;
+  }
+
+  .menu-grid {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 2rem 6rem;
+  }
+
+  .category-pills {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .sticky-cart-bar {
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 960px;
+    border-radius: 10px 10px 0 0;
+  }
+}
