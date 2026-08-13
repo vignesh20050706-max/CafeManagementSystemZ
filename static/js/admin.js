@@ -453,20 +453,17 @@
       disconnectSSE();
     });
 
+    /*
+     * Keep SSE alive when the tab goes to background.
+     * The admin needs background monitoring while the cafe
+     * is open — do NOT disconnect on visibility change.
+     */
     document.addEventListener("visibilitychange", function () {
       isVisible = !document.hidden;
 
-      if (isVisible) {
+      if (isVisible && !eventSource) {
+        // Reconnect only if SSE dropped while in background.
         connectSSE();
-
-        /*
-         * Do not immediately reload here.
-         *
-         * The SSE connection will detect genuinely
-         * new orders using the saved last order ID.
-         */
-      } else {
-        disconnectSSE();
       }
     });
   }

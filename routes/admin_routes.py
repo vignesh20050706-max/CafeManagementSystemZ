@@ -333,66 +333,111 @@ def set_cafe_status():
 @admin_bp.route('/api/orders/events')
 @admin_required
 def order_events():
-    """SSE endpoint for real-time order updates."""
+    """SSE endpoint for real-time new-paid-order notifications.
 
-    # Read the last known order ID before starting the
-    # streaming generator.
+    Listens on the in-memory OrderEventBus instead of polling
+    the database.  A new_paid_order event is published only
+    after payment verification succeeds and the order is
+    committed — so the admin is notified at the exact moment
+    a genuine paid order arrives.
+
+    Suppresses notifications when the cafe is closed.
+    """
+
+    from services.order_events import order_event_bus
+
     raw_last_id = request.args.get('last_id')
 
-    if raw_last_id is None:
-        newest = Order.query.order_by(Order.id.desc()).first()
-        last_id = newest.id if newest else 0
-    else:
+    if raw_last_id is not None:
         try:
-            last_id = int(raw_last_id)
+            last_seen_id = int(raw_last_id)
         except (TypeError, ValueError):
-            last_id = 0
+            last_seen_id = 0
+    else:
+        # First connection (no client state): start from the
+        # latest paid order so existing orders never trigger
+        # a notification.
+        latest_paid = (
+            Order.query
+            .join(Payment, Payment.order_id == Order.id)
+            .filter(Payment.status == PaymentStatus.SUCCESS.value)
+            .order_by(Order.id.desc())
+            .first()
+        )
+        last_seen_id = latest_paid.id if latest_paid else 0
+
+    since_timestamp = time.time()
 
     def generate():
-        import time
+        import time as _time
 
-        # Confirm that the SSE connection is alive.
         yield ": connected\n\n"
 
-        current_last_id = last_id
+        current_last_id = last_seen_id
 
-        while True:
-            time.sleep(2)
-
-            newest = (
+        # ---- Catch-up: if the client is reconnecting with a
+        #      known last_id, check for any paid orders that
+        #      arrived while the connection was down. --------
+        if raw_last_id is not None:
+            missed = (
                 Order.query
-                .order_by(Order.id.desc())
-                .first()
+                .join(Payment, Payment.order_id == Order.id)
+                .filter(Payment.status == PaymentStatus.SUCCESS.value)
+                .filter(Order.id > current_last_id)
+                .order_by(Order.id.asc())
+                .all()
+            )
+            for order in missed:
+                payload = {
+                    'type': 'new_order',
+                    'order': {**order.to_dict(), 'id': order.id}
+                }
+                yield f"data: {json.dumps(payload)}\n\n"
+                current_last_id = max(current_last_id, order.id)
+
+            since_timestamp = _time.time()
+
+        # ---- Main loop: wait for events from the bus ------
+        while True:
+            # Suppress new-order notifications while closed.
+            cafe = CafeStatus.get()
+            if cafe.status != 'open':
+                yield ": cafe_closed\n\n"
+                _time.sleep(5)
+                since_timestamp = _time.time()
+                continue
+
+            events = order_event_bus.wait_for_events(
+                since_timestamp, timeout=3
             )
 
-            if newest and newest.id > current_last_id:
+            if events:
+                for ev in events:
+                    if (ev['type'] == 'new_paid_order'
+                            and ev['order_db_id'] > current_last_id):
+                        order = Order.query.get(ev['order_db_id'])
+                        if order:
+                            payload = {
+                                'type': 'new_order',
+                                'order': {
+                                    **order.to_dict(),
+                                    'id': order.id
+                                }
+                            }
+                            yield f"data: {json.dumps(payload)}\n\n"
+                            current_last_id = max(
+                                current_last_id, order.id
+                            )
 
-                order = Order.query.get(newest.id)
-
-                if order:
-                    payload = {
-                        'type': 'new_order',
-                        'order': {
-                            **order.to_dict(),
-                            'id': order.id
-                        }
-                    }
-
-                    yield (
-                        f"data: {json.dumps(payload)}\n\n"
-                    )
-
-                    current_last_id = newest.id
-
+                since_timestamp = _time.time()
             else:
-                # Keep the SSE connection alive.
                 yield ": heartbeat\n\n"
 
     return current_app.response_class(
-    stream_with_context(generate()),
-    mimetype='text/event-stream',
-    headers={
-        'Cache-Control': 'no-cache',
-        'X-Accel-Buffering': 'no'
-    }
-)
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+        }
+    )

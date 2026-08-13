@@ -5,7 +5,6 @@ from sqlalchemy import inspect, text
 from config import Config
 from database.database import db
 
-
 def create_app(config_class=Config):
     app = Flask(__name__,
                 template_folder='templates',

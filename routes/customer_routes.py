@@ -338,6 +338,12 @@ def verify_payment():
         db.session.add(payment)
         db.session.commit()
 
+        # Publish event for real-time admin notification.
+        # This is the single source of truth that a new PAID
+        # order exists — the SSE endpoint waits on this bus.
+        from services.order_events import order_event_bus
+        order_event_bus.publish('new_paid_order', order.id)
+
     except Exception as e:
         db.session.rollback()
 
