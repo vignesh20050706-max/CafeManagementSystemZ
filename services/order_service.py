@@ -26,20 +26,23 @@ def generate_order_id():
 
 
 def create_order(customer_name, customer_mobile, order_type, cart_items, total_amount,
-                 special_instructions=None, email=None, whatsapp_number=None):
+                 special_instructions=None, email=None, whatsapp_number=None,
+                 cafe_id=None):
     """Create a new order with items from cart."""
     customer = Customer.find_or_create(
-        name=customer_name,
-        mobile=customer_mobile,
-        email=email,
-        whatsapp_number=whatsapp_number,
-    )
+    name=customer_name,
+    mobile=customer_mobile,
+    email=email,
+    whatsapp_number=whatsapp_number,
+    cafe_id=cafe_id,
+)
 
     order_id = generate_order_id()
     order = Order(
-        order_id=order_id,
-        customer_id=customer.id,
-        order_type=order_type,
+    order_id=order_id,
+    customer_id=customer.id,
+    cafe_id=cafe_id,
+    order_type=order_type,
         status=OrderStatus.RECEIVED.value,
         total_amount=total_amount,
         special_instructions=special_instructions,

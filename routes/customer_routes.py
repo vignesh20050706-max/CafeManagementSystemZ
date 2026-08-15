@@ -7,6 +7,7 @@ from models.order import Order, OrderItem, OrderStatus
 from models.payment import Payment, PaymentStatus
 from models.cafe_status import CafeStatus
 from services import order_service, payment_service, notification_service, invoice_service, qr_service
+from services.cafe_service import get_default_cafe
 from utils.validators import validate_mobile, validate_email, validate_cart_items
 from utils.helpers import format_currency
 
@@ -18,27 +19,64 @@ customer_bp = Blueprint('customer_routes', __name__)
 @customer_bp.route('/')
 def home():
     """Customer home page."""
-    daily_specials = MenuItem.query.filter_by(is_daily_special=True, is_available=True).limit(6).all()
-    categories = MenuCategory.query.order_by(MenuCategory.display_order).all()
-    cafe_status_obj = CafeStatus.get()
-    return render_template('customer/home.html',
-                           daily_specials=daily_specials,
-                           categories=categories,
-                           cafe_status=cafe_status_obj.status)
+    cafe = get_default_cafe()
 
+    if not cafe:
+        return render_template(
+            'customer/home.html',
+            daily_specials=[],
+            categories=[],
+            cafe_status='closed'
+        )
 
-@customer_bp.route('/order-type')
+    daily_specials = (
+        MenuItem.query
+        .filter_by(
+            cafe_id=cafe.id,
+            is_daily_special=True,
+            is_available=True
+        )
+        .limit(6)
+        .all()
+    )
+
+    categories = (
+        MenuCategory.query
+        .filter_by(cafe_id=cafe.id)
+        .order_by(MenuCategory.display_order)
+        .all()
+    )
+
+    cafe_status_obj = CafeStatus.get(cafe.id)
+
+    return render_template(
+        'customer/home.html',
+        daily_specials=daily_specials,
+        categories=categories,
+        cafe_status=cafe_status_obj.status
+    )
 def order_type():
     """Choose takeaway or dine-in."""
-    cafe_status_obj = CafeStatus.get()
+    cafe = get_default_cafe()
+    if not cafe:
+        return redirect(url_for('customer_routes.home'))
+
+    cafe_status_obj = CafeStatus.get(cafe.id)
     if cafe_status_obj.status != 'open':
         return redirect(url_for('customer_routes.home'))
-    return render_template('customer/order_type.html')
+        return render_template('customer/order_type.html')
 
 @customer_bp.route('/order-now')
 def order_now():
     """Start customer ordering only when the cafe is accepting orders."""
-    cafe_status_obj = CafeStatus.get()
+    cafe = get_default_cafe()
+
+    if not cafe:
+        return redirect(
+            url_for('customer_routes.home')
+        )
+
+    cafe_status_obj = CafeStatus.get(cafe.id)
 
     if cafe_status_obj.status != 'open':
         return redirect(
@@ -52,25 +90,69 @@ def order_now():
 
 @customer_bp.route('/menu')
 def menu():
-    """Browse the menu."""
-    categories = MenuCategory.query.order_by(MenuCategory.display_order).all()
-    items = MenuItem.query.order_by(MenuItem.item_number).all()
-    cafe_status_obj = CafeStatus.get()
-    return render_template('customer/menu.html',
-                           categories=categories,
-                           items=items,
-                           cafe_status=cafe_status_obj.status)
+    """Browse the menu for the active cafe."""
+    cafe = get_default_cafe()
 
+    if not cafe:
+        return render_template(
+            'customer/menu.html',
+            categories=[],
+            items=[],
+            cafe_status='closed'
+        )
+
+    categories = (
+        MenuCategory.query
+        .filter_by(cafe_id=cafe.id)
+        .order_by(MenuCategory.display_order)
+        .all()
+    )
+
+    items = (
+        MenuItem.query
+        .filter_by(cafe_id=cafe.id)
+        .order_by(MenuItem.item_number)
+        .all()
+    )
+
+    cafe_status_obj = CafeStatus.get(cafe.id)
+
+    return render_template(
+        'customer/menu.html',
+        categories=categories,
+        items=items,
+        cafe_status=cafe_status_obj.status
+    )
 
 @customer_bp.route('/api/menu/items')
 def api_menu_items():
-    """Return menu items as JSON for AJAX calls."""
+    """Return menu items for the active cafe as JSON."""
+    cafe = get_default_cafe()
+
+    if not cafe:
+        return jsonify([])
+
     category_id = request.args.get('category_id')
-    query = MenuItem.query
+
+    query = MenuItem.query.filter_by(
+        cafe_id=cafe.id
+    )
+
     if category_id:
-        query = query.filter_by(category_id=int(category_id))
-    items = query.order_by(MenuItem.item_number).all()
-    return jsonify([item.to_dict() for item in items])
+        query = query.filter_by(
+            category_id=int(category_id)
+        )
+
+    items = (
+        query
+        .order_by(MenuItem.item_number)
+        .all()
+    )
+
+    return jsonify([
+        item.to_dict()
+        for item in items
+    ])
 
 
 @customer_bp.route('/cart')
@@ -82,7 +164,11 @@ def cart():
 @customer_bp.route('/checkout')
 def checkout():
     """Checkout page."""
-    cafe_status_obj = CafeStatus.get()
+    cafe = get_default_cafe()
+    if not cafe:
+        return redirect(url_for('customer_routes.home'))
+
+    cafe_status_obj = CafeStatus.get(cafe.id)
     if cafe_status_obj.status != 'open':
         return redirect(url_for('customer_routes.home'))
     return render_template('customer/checkout.html', cafe_status=cafe_status_obj.status)
@@ -94,9 +180,19 @@ def create_payment():
     data = request.get_json(silent=True) or {}
 
     # Cafe must be accepting orders
-    cafe_status_obj = CafeStatus.get()
+    cafe = get_default_cafe()
+
+    if not cafe:
+        return jsonify({
+        'error': 'Cafe is currently unavailable.'
+    }), 400
+
+    cafe_status_obj = CafeStatus.get(cafe.id)
+
     if cafe_status_obj.status != 'open':
-        return jsonify({'error': 'The cafe is currently not accepting orders.'}), 400
+        return jsonify({
+        'error': 'The cafe is currently not accepting orders.'
+    }), 400
 
     # Validate cart
     cart_items = data.get('cart_items', [])
@@ -151,7 +247,14 @@ def create_payment():
         if quantity <= 0:
             return jsonify({'error': 'Invalid item quantity'}), 400
 
-        menu_item = db.session.get(MenuItem, menu_item_id)
+        menu_item = (
+    MenuItem.query
+    .filter_by(
+        id=menu_item_id,
+        cafe_id=cafe.id
+    )
+    .first()
+)
 
         if not menu_item or not menu_item.is_available:
             return jsonify({
@@ -187,8 +290,9 @@ def create_payment():
 
     # Store only the verified checkout information in the server session
     session['pending_order'] = {
-        'name': name,
-        'mobile': mobile_clean,
+    'name': name,
+    'mobile': mobile_clean,
+    'cafe_id': cafe.id,
         'email': email,
         'whatsapp_number': whatsapp_clean,
         'order_type': order_type,
@@ -299,16 +403,18 @@ def verify_payment():
 
     try:
         customer = Customer.find_or_create(
-            name=pending_order['name'],
-            mobile=pending_order['mobile'],
-            email=pending_order.get('email'),
-            whatsapp_number=pending_order.get('whatsapp_number'),
-        )
+    name=pending_order['name'],
+    mobile=pending_order['mobile'],
+    email=pending_order.get('email'),
+    whatsapp_number=pending_order.get('whatsapp_number'),
+    cafe_id=pending_order['cafe_id'],
+)
 
         order = Order(
-            order_id=pending_order['temp_order_id'],
-            customer_id=customer.id,
-            order_type=pending_order['order_type'],
+    order_id=pending_order['temp_order_id'],
+    customer_id=customer.id,
+    cafe_id=pending_order['cafe_id'],
+    order_type=pending_order['order_type'],
             status=OrderStatus.RECEIVED.value,
             total_amount=pending_order['total_amount'],
             special_instructions=pending_order.get('special_instructions'),
@@ -318,10 +424,14 @@ def verify_payment():
         db.session.flush()
 
         for item in pending_order['cart_items']:
-            menu_item = db.session.get(
-                MenuItem,
-                item['menu_item_id']
-            )
+            menu_item = (
+    MenuItem.query
+    .filter_by(
+        id=item['menu_item_id'],
+        cafe_id=pending_order['cafe_id']
+    )
+    .first()
+)
 
             if not menu_item or not menu_item.is_available:
                 raise ValueError(
