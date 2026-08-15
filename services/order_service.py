@@ -87,31 +87,83 @@ def update_order_status(order, new_status: OrderStatus, estimated_minutes=None):
     return order
 
 
-def get_active_orders():
-    """Get all orders that are not yet delivered or rejected."""
+def get_active_orders(cafe_id=None):
+    """Get active orders for a cafe."""
     active_statuses = [
         OrderStatus.RECEIVED.value,
         OrderStatus.ACCEPTED.value,
         OrderStatus.PREPARING.value,
         OrderStatus.READY.value,
     ]
-    return Order.query.filter(Order.status.in_(active_statuses)).order_by(Order.created_at.desc()).all()
 
+    query = Order.query.filter(
+        Order.status.in_(active_statuses)
+    )
 
-def get_today_orders():
-    """Get all orders created today."""
-    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    return Order.query.filter(Order.created_at >= today_start).order_by(Order.created_at.desc()).all()
+    if cafe_id is not None:
+        query = query.filter(
+            Order.cafe_id == cafe_id
+        )
 
-
-def get_today_revenue():
-    """Get total revenue from paid orders today."""
-    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    paid_orders = Order.query.filter(
-        Order.created_at >= today_start,
-        Order.status.notin_([OrderStatus.REJECTED.value]),
+    return query.order_by(
+        Order.created_at.desc()
     ).all()
-    return sum(o.total_amount for o in paid_orders)
+
+
+def get_today_orders(cafe_id=None):
+    """Get today's orders for a cafe."""
+    today_start = datetime.now(
+        timezone.utc
+    ).replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0
+    )
+
+    query = Order.query.filter(
+        Order.created_at >= today_start
+    )
+
+    if cafe_id is not None:
+        query = query.filter(
+            Order.cafe_id == cafe_id
+        )
+
+    return query.order_by(
+        Order.created_at.desc()
+    ).all()
+
+
+def get_today_revenue(cafe_id=None):
+    """Get today's revenue for a cafe."""
+    today_start = datetime.now(
+        timezone.utc
+    ).replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0
+    )
+
+    query = Order.query.filter(
+        Order.created_at >= today_start,
+        Order.status.notin_([
+            OrderStatus.REJECTED.value
+        ]),
+    )
+
+    if cafe_id is not None:
+        query = query.filter(
+            Order.cafe_id == cafe_id
+        )
+
+    paid_orders = query.all()
+
+    return sum(
+        order.total_amount
+        for order in paid_orders
+    )
 
 
 def search_orders(query):

@@ -38,16 +38,30 @@ def admin_required(f):
 
 
 @admin_bp.route('/login', methods=['GET', 'POST'])
+
+def get_admin_cafe_id():
+    """Return the cafe assigned to the logged-in admin."""
+    cafe_id = session.get('admin_cafe_id')
+
+    if cafe_id is None:
+        return None
+
+    return int(cafe_id)
 def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         admin = Admin.query.filter_by(username=username).first()
-        if admin and admin.check_password(password):
-            session['admin_id'] = admin.id
-            session['admin_username'] = admin.username
-            return redirect(url_for('admin_routes.dashboard'))
-        return render_template('admin/login.html', error='Invalid credentials')
+    if admin and admin.check_password(password):
+       session['admin_id'] = admin.id
+       session['admin_username'] = admin.username
+       session['admin_cafe_id'] = admin.cafe_id
+
+    return redirect(
+        url_for('admin_routes.dashboard')
+    )
+    return render_template('admin/login.html', error='Invalid credentials')
+
     if 'admin_id' in session:
         return redirect(url_for('admin_routes.dashboard'))
     return render_template('admin/login.html')
@@ -57,6 +71,7 @@ def login():
 def logout():
     session.pop('admin_id', None)
     session.pop('admin_username', None)
+    session.pop('admin_cafe_id', None)
     return redirect(url_for('admin_routes.login'))
 
 
@@ -64,9 +79,19 @@ def logout():
 @admin_bp.route('/dashboard')
 @admin_required
 def dashboard():
-    today_orders = order_service.get_today_orders()
-    today_revenue = order_service.get_today_revenue()
-    active_orders = order_service.get_active_orders()
+    cafe_id = get_admin_cafe_id()
+
+    today_orders = order_service.get_today_orders(
+        cafe_id=cafe_id
+    )
+
+    today_revenue = order_service.get_today_revenue(
+        cafe_id=cafe_id
+    )
+
+    active_orders = order_service.get_active_orders(
+        cafe_id=cafe_id
+    )
 
     new_count = len([o for o in active_orders if o.status == 'received'])
     preparing_count = len([o for o in active_orders if o.status == 'preparing'])
@@ -88,6 +113,9 @@ def orders():
     query = Order.query
     if status_filter:
         query = query.filter_by(status=status_filter)
+    cafe_id = get_admin_cafe_id()
+    if cafe_id is not None:
+        query = query.filter(Order.cafe_id == cafe_id)
     all_orders = query.order_by(Order.created_at.desc()).limit(100).all()
     return render_template('admin/orders.html', orders=all_orders, current_filter=status_filter)
 

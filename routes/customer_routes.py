@@ -35,6 +35,20 @@ def order_type():
         return redirect(url_for('customer_routes.home'))
     return render_template('customer/order_type.html')
 
+@customer_bp.route('/order-now')
+def order_now():
+    """Start customer ordering only when the cafe is accepting orders."""
+    cafe_status_obj = CafeStatus.get()
+
+    if cafe_status_obj.status != 'open':
+        return redirect(
+            url_for('customer_routes.home')
+        )
+
+    return redirect(
+        url_for('customer_routes.menu')
+    )
+
 
 @customer_bp.route('/menu')
 def menu():
