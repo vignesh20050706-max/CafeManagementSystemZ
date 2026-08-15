@@ -55,16 +55,26 @@ def home():
         categories=categories,
         cafe_status=cafe_status_obj.status
     )
+@customer_bp.route('/order-type')
 def order_type():
     """Choose takeaway or dine-in."""
     cafe = get_default_cafe()
+
     if not cafe:
-        return redirect(url_for('customer_routes.home'))
+        return redirect(
+            url_for('customer_routes.home')
+        )
 
     cafe_status_obj = CafeStatus.get(cafe.id)
+
     if cafe_status_obj.status != 'open':
-        return redirect(url_for('customer_routes.home'))
-        return render_template('customer/order_type.html')
+        return redirect(
+            url_for('customer_routes.home')
+        )
+
+    return render_template(
+        'customer/order_type.html'
+    )
 
 @customer_bp.route('/order-now')
 def order_now():
