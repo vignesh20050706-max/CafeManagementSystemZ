@@ -18,7 +18,7 @@
 
   var RETRY_BASE_DELAY = 3000;
   var RETRY_MAX_DELAY = 30000;
-  var MAX_RETRIES = 10;
+  var MAX_RETRIES = Infinity;
 
   var currentRetryDelay = RETRY_BASE_DELAY;
   var retryCount = 0;
@@ -426,8 +426,6 @@
     retryCount++;
 
     if (retryCount > MAX_RETRIES) {
-      console.warn("[admin.js] Maximum SSE retries reached.");
-
       return;
     }
 
