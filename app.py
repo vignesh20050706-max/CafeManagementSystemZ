@@ -51,31 +51,106 @@ def create_app(config_class=Config):
     def server_error(e):
         return 'Server error', 500
 
-    # Init DB
+        # Init DB
     with app.app_context():
+        # Import all models before create_all() so SQLAlchemy knows
+        # about every table and relationship.
+        from models import (
+            Cafe,
+            Admin,
+            Customer,
+            MenuCategory,
+            MenuItem,
+            Order,
+            OrderItem,
+            Payment,
+            Notification,
+            CafeStatus,
+        )
+
         db.create_all()
 
-        # Lightweight, idempotent migration for the existing SQLite prototype database.
-        # db.create_all() does not add new columns to existing tables.
+        # Lightweight, idempotent migrations for the existing SQLite
+        # prototype database.
+        #
+        # db.create_all() creates missing tables but does NOT add new
+        # columns to tables that already exist.
+
         inspector = inspect(db.engine)
-        order_columns = {column['name'] for column in inspector.get_columns('orders')}
+
         migrations = []
 
-        if 'rejection_reason' not in order_columns:
-            migrations.append(
-                text('ALTER TABLE orders ADD COLUMN rejection_reason TEXT')
-            )
+        def add_column_if_missing(table_name, column_name, column_definition):
+            existing_columns = {
+                column['name']
+                for column in inspector.get_columns(table_name)
+            }
 
-        if 'refund_status' not in order_columns:
-            migrations.append(
-                text('ALTER TABLE orders ADD COLUMN refund_status VARCHAR(30)')
-            )
+            if column_name not in existing_columns:
+                migrations.append(
+                    text(
+                        f'ALTER TABLE {table_name} '
+                        f'ADD COLUMN {column_name} {column_definition}'
+                    )
+                )
+
+        # Existing order migrations
+        add_column_if_missing(
+            'orders',
+            'rejection_reason',
+            'TEXT'
+        )
+
+        add_column_if_missing(
+            'orders',
+            'refund_status',
+            'VARCHAR(30)'
+        )
+
+        # Multi-cafe foundation
+        add_column_if_missing(
+            'admins',
+            'cafe_id',
+            'INTEGER'
+        )
+
+        add_column_if_missing(
+            'customers',
+            'cafe_id',
+            'INTEGER'
+        )
+
+        add_column_if_missing(
+            'orders',
+            'cafe_id',
+            'INTEGER'
+        )
+
+        add_column_if_missing(
+            'menu_categories',
+            'cafe_id',
+            'INTEGER'
+        )
+
+        add_column_if_missing(
+            'menu_items',
+            'cafe_id',
+            'INTEGER'
+        )
+
+        add_column_if_missing(
+            'cafe_status',
+            'cafe_id',
+            'INTEGER'
+        )
 
         if migrations:
             try:
                 for migration in migrations:
                     db.session.execute(migration)
+
                 db.session.commit()
+
             except Exception:
                 db.session.rollback()
                 raise
