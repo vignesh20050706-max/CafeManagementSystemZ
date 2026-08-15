@@ -1,23 +1,51 @@
 from datetime import datetime, timezone
 from database.database import db
 from models.admin import Admin
+from models.cafe import Cafe
 from models.menu import MenuCategory, MenuItem
 from models.cafe_status import CafeStatus
 
 
 def seed():
     """Seed the database with demo data. Idempotent."""
+    
+    # Default cafe
+    cafe = Cafe.query.order_by(Cafe.id.asc()).first()
+
+    if not cafe:
+        from config import Config
+
+        cafe = Cafe(
+            name=Config.CAFE_NAME,
+            phone=Config.CAFE_PHONE,
+            address=Config.CAFE_ADDRESS,
+            status='active'
+        )
+
+        db.session.add(cafe)
+        db.session.flush()
+
+        print(f'Created default cafe: {cafe.name}')
 
     # Admin
     if not Admin.query.filter_by(username='admin').first():
-        admin = Admin(username='admin', created_at=datetime.now(timezone.utc))
+        admin = Admin(
+            cafe_id=cafe.id,
+            username='admin',
+            created_at=datetime.now(timezone.utc)
+        )
         admin.set_password('admin123')
         db.session.add(admin)
         print('Created admin account: admin / admin123')
 
     # Cafe status
     if not CafeStatus.query.first():
-        db.session.add(CafeStatus(status='open'))
+        db.session.add(
+            CafeStatus(
+                cafe_id=cafe.id,
+                status='open'
+            )
+        )
         print('Set cafe status: open')
 
     # Menu categories
@@ -32,9 +60,16 @@ def seed():
 
     categories = {}
     for cat_name, display_order in categories_data:
-        cat = MenuCategory.query.filter_by(name=cat_name).first()
+        cat = MenuCategory.query.filter_by(
+    cafe_id=cafe.id,
+    name=cat_name
+).first()
         if not cat:
-            cat = MenuCategory(name=cat_name, display_order=display_order)
+            cat = MenuCategory(
+                cafe_id=cafe.id,
+                name=cat_name,
+                display_order=display_order
+            )
             db.session.add(cat)
         categories[cat_name] = cat
 
@@ -87,9 +122,14 @@ def seed():
     ]
 
     for item_number, name, desc, price, cat_name, available, daily_special in items_data:
-        existing = MenuItem.query.filter_by(item_number=item_number).first()
+        existing = MenuItem.query.filter_by(
+            cafe_id=cafe.id,
+            item_number=item_number
+        ).first()
+        
         if not existing:
             item = MenuItem(
+                cafe_id=cafe.id,
                 category_id=categories[cat_name].id,
                 item_number=item_number,
                 name=name,

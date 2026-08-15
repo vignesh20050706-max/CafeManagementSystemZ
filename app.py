@@ -155,6 +155,96 @@ def create_app(config_class=Config):
                 db.session.rollback()
                 raise
 
+        # ---------------------------------------------------------
+        # PHASE 3 - STAGE 2
+        # Migrate existing single-cafe data into the first cafe.
+        # This is idempotent and safe to run repeatedly.
+        # ---------------------------------------------------------
+
+        from models.cafe import Cafe
+
+        default_cafe = Cafe.query.order_by(Cafe.id.asc()).first()
+
+        if not default_cafe:
+            default_cafe = Cafe(
+                name=app.config.get(
+                    'CAFE_NAME',
+                    'The Brew Spot'
+                ),
+                phone=app.config.get(
+                    'CAFE_PHONE',
+                    ''
+                ),
+                address=app.config.get(
+                    'CAFE_ADDRESS',
+                    ''
+                ),
+                status='active'
+            )
+
+            db.session.add(default_cafe)
+            db.session.flush()
+
+        # Existing admins
+        Admin.query.filter(
+            Admin.cafe_id.is_(None)
+        ).update(
+            {
+                Admin.cafe_id: default_cafe.id
+            },
+            synchronize_session=False
+        )
+
+        # Existing customers
+        Customer.query.filter(
+            Customer.cafe_id.is_(None)
+        ).update(
+            {
+                Customer.cafe_id: default_cafe.id
+            },
+            synchronize_session=False
+        )
+
+        # Existing orders
+        Order.query.filter(
+            Order.cafe_id.is_(None)
+        ).update(
+            {
+                Order.cafe_id: default_cafe.id
+            },
+            synchronize_session=False
+        )
+
+        # Existing menu categories
+        MenuCategory.query.filter(
+            MenuCategory.cafe_id.is_(None)
+        ).update(
+            {
+                MenuCategory.cafe_id: default_cafe.id
+            },
+            synchronize_session=False
+        )
+
+        # Existing menu items
+        MenuItem.query.filter(
+            MenuItem.cafe_id.is_(None)
+        ).update(
+            {
+                MenuItem.cafe_id: default_cafe.id
+            },
+            synchronize_session=False
+        )
+
+        # Existing cafe status
+        cafe_status = CafeStatus.query.filter(
+            CafeStatus.cafe_id.is_(None)
+        ).first()
+
+        if cafe_status:
+            cafe_status.cafe_id = default_cafe.id
+
+        db.session.commit()
+
     return app
 
 
