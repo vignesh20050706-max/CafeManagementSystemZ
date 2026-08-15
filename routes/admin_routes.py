@@ -38,6 +38,38 @@ def admin_required(f):
 
 
 @admin_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+
+        admin = Admin.query.filter_by(
+            username=username
+        ).first()
+
+        if admin and admin.check_password(password):
+            session['admin_id'] = admin.id
+            session['admin_username'] = admin.username
+            session['admin_cafe_id'] = admin.cafe_id
+
+            return redirect(
+                url_for('admin_routes.dashboard')
+            )
+
+        return render_template(
+            'admin/login.html',
+            error='Invalid credentials'
+        )
+
+    if 'admin_id' in session:
+        return redirect(
+            url_for('admin_routes.dashboard')
+        )
+
+    return render_template(
+        'admin/login.html'
+    )
+
 
 def get_admin_cafe_id():
     """Return the cafe assigned to the logged-in admin."""
@@ -47,24 +79,6 @@ def get_admin_cafe_id():
         return None
 
     return int(cafe_id)
-def login():
-    if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '')
-        admin = Admin.query.filter_by(username=username).first()
-    if admin and admin.check_password(password):
-       session['admin_id'] = admin.id
-       session['admin_username'] = admin.username
-       session['admin_cafe_id'] = admin.cafe_id
-
-    return redirect(
-        url_for('admin_routes.dashboard')
-    )
-    return render_template('admin/login.html', error='Invalid credentials')
-
-    if 'admin_id' in session:
-        return redirect(url_for('admin_routes.dashboard'))
-    return render_template('admin/login.html')
 
 
 @admin_bp.route('/logout')
