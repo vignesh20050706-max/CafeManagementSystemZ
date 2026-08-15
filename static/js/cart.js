@@ -2,265 +2,462 @@
  * Cart Page
  * ==========
  * Renders the shopping cart from localStorage, handles quantity changes,
- * item removal, clearing, and navigation to checkout.
+ * item removal, clearing, and the Phase 5 order-flow transition.
  *
- * Expected DOM containers (set by Jinja2 template):
- *   #cart-content   - where rendered cart items are injected
- *   #cart-empty     - empty-cart message (shown/hidden by JS)
+ * Flow:
+ *   Cart -> PROCEED -> Delivery Options -> Submit -> Checkout
  *
- * NOTE: This file is loaded inside Jinja2 templates. Avoid double-curly-braces and percent-brace tags.
- *       Never write double curly braces or percent-brace tags here.
+ * Existing order_type localStorage key is preserved so the current
+ * checkout/payment backend continues to receive the same value.
  */
 (function () {
-    'use strict';
+  "use strict";
 
-    /* ------------------------------------------------------------------ */
-    /*  Constants                                                          */
-    /* ------------------------------------------------------------------ */
-    var CART_KEY = 'cart';
+  var CART_KEY = "cart";
+  var ORDER_TYPE_KEY = "order_type";
 
-    /* ------------------------------------------------------------------ */
-    /*  Utility: format currency                                           */
-    /* ------------------------------------------------------------------ */
-    function formatRs(amount) {
-        var num = parseFloat(amount);
-        if (isNaN(num)) return 'Rs.0';
-        return 'Rs.' + num;
+  function formatRs(amount) {
+    var num = parseFloat(amount);
+    if (isNaN(num)) return "Rs.0";
+    return "Rs." + num;
+  }
+
+  function getCart() {
+    try {
+      return JSON.parse(localStorage.getItem(CART_KEY)) || [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function saveCart(cart) {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    dispatchCartEvent();
+  }
+
+  function dispatchCartEvent() {
+    try {
+      window.dispatchEvent(new CustomEvent("cartUpdated"));
+    } catch (_) {}
+  }
+
+  function escapeHTML(str) {
+    var div = document.createElement("div");
+    div.appendChild(document.createTextNode(str == null ? "" : String(str)));
+    return div.innerHTML;
+  }
+
+  function getItemCount(cart) {
+    var count = 0;
+
+    for (var i = 0; i < cart.length; i++) {
+      count += Number(cart[i].quantity) || 0;
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Cart helpers (localStorage)                                        */
-    /* ------------------------------------------------------------------ */
-    function getCart() {
-        try {
-            return JSON.parse(localStorage.getItem(CART_KEY)) || [];
-        } catch (_) {
-            return [];
-        }
+    return count;
+  }
+
+  function getTotal(cart) {
+    var total = 0;
+
+    for (var i = 0; i < cart.length; i++) {
+      total += (Number(cart[i].price) || 0) * (Number(cart[i].quantity) || 0);
     }
 
-    function saveCart(cart) {
-        localStorage.setItem(CART_KEY, JSON.stringify(cart));
-        dispatchCartEvent();
+    return total;
+  }
+
+  function buildCartItemHTML(item, index) {
+    var quantity = Number(item.quantity) || 0;
+    var price = Number(item.price) || 0;
+    var subtotal = price * quantity;
+
+    return (
+      "" +
+      '<div class="cart-item"' +
+      ' data-cart-item-id="' +
+      escapeHTML(item.menu_item_id) +
+      '">' +
+      '<div class="cart-item-info">' +
+      '<div class="cart-item-number">' +
+      escapeHTML(item.item_number || "") +
+      "</div>" +
+      '<div class="cart-item-name">' +
+      escapeHTML(item.name) +
+      "</div>" +
+      '<div class="cart-item-price">' +
+      formatRs(price) +
+      "</div>" +
+      "</div>" +
+      '<div class="qty-control">' +
+      "<button " +
+      'class="qty-btn cart-qty-dec" ' +
+      'data-id="' +
+      escapeHTML(item.menu_item_id) +
+      '" ' +
+      'type="button" ' +
+      'aria-label="Decrease quantity">' +
+      "-" +
+      "</button>" +
+      '<span class="qty-val">' +
+      quantity +
+      "</span>" +
+      "<button " +
+      'class="qty-btn cart-qty-inc" ' +
+      'data-id="' +
+      escapeHTML(item.menu_item_id) +
+      '" ' +
+      'type="button" ' +
+      'aria-label="Increase quantity">' +
+      "+" +
+      "</button>" +
+      "</div>" +
+      '<div class="cart-item-subtotal">' +
+      formatRs(subtotal) +
+      "</div>" +
+      "<button " +
+      'class="cart-remove" ' +
+      'data-id="' +
+      escapeHTML(item.menu_item_id) +
+      '" ' +
+      'type="button" ' +
+      'title="Remove item" ' +
+      'aria-label="Remove item">' +
+      "&#10005;" +
+      "</button>" +
+      "</div>"
+    );
+  }
+
+  function buildCartHTML(cart) {
+    var html = "";
+    var total = getTotal(cart);
+    var itemCount = getItemCount(cart);
+
+    for (var i = 0; i < cart.length; i++) {
+      html += buildCartItemHTML(cart[i], i);
     }
 
-    function dispatchCartEvent() {
-        try {
-            window.dispatchEvent(new CustomEvent('cartUpdated'));
-        } catch (_) { /* noop */ }
+    html +=
+      "" +
+      '<div class="cart-summary">' +
+      '<div class="cart-summary-row">' +
+      "<span>" +
+      itemCount +
+      (itemCount === 1 ? " item" : " items") +
+      "</span>" +
+      "<span>" +
+      formatRs(total) +
+      "</span>" +
+      "</div>" +
+      '<div class="cart-summary-row total">' +
+      "<span>Total</span>" +
+      "<span>" +
+      formatRs(total) +
+      "</span>" +
+      "</div>" +
+      "</div>";
+
+    html +=
+      "" +
+      '<div class="d-grid gap-2 p-3">' +
+      "<button " +
+      'class="btn btn-outline-secondary py-2" ' +
+      'id="clear-cart-btn" ' +
+      'type="button" ' +
+      'style="border-radius:10px;font-size:.88rem;">' +
+      "Clear Cart" +
+      "</button>" +
+      "</div>";
+
+    return html;
+  }
+
+  function updateBottomBar(cart) {
+    var bar = document.getElementById("cart-bottom-bar");
+    var countEl = document.getElementById("cart-bottom-count");
+    var totalEl = document.getElementById("cart-bottom-total");
+
+    if (!bar) return;
+
+    if (!cart.length) {
+      bar.style.display = "none";
+      document.body.classList.remove("has-cart-bottom-bar");
+      return;
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Build HTML for a single cart item row                              */
-    /* ------------------------------------------------------------------ */
-    function buildCartItemHTML(item, index) {
-        var subtotal = item.price * item.quantity;
+    var count = getItemCount(cart);
+    var total = getTotal(cart);
 
-        return '' +
-            '<div class="d-flex align-items-center gap-3 py-3' +
-                (index > 0 ? ' border-top' : '') + '" style="border-color:var(--border);" ' +
-                'data-cart-item-id="' + item.menu_item_id + '">' +
-                '<!-- Item info -->' +
-                '<div style="flex:1;min-width:0;">' +
-                    '<div style="font-size:0.72rem;color:var(--muted);font-weight:600;">' +
-                        escapeHTML(item.item_number || '') +
-                    '</div>' +
-                    '<div style="font-weight:600;font-size:0.92rem;color:var(--text);">' +
-                        escapeHTML(item.name) +
-                    '</div>' +
-                    '<div style="font-size:0.85rem;color:var(--primary);font-weight:700;">' +
-                        formatRs(item.price) +
-                    '</div>' +
-                '</div>' +
-                '<!-- Qty controls -->' +
-                '<div class="qty-control">' +
-                    '<button class="qty-btn cart-qty-dec" data-id="' + item.menu_item_id + '" type="button">-</button>' +
-                    '<span class="qty-val">' + item.quantity + '</span>' +
-                    '<button class="qty-btn cart-qty-inc" data-id="' + item.menu_item_id + '" type="button">+</button>' +
-                '</div>' +
-                '<!-- Subtotal -->' +
-                '<div style="min-width:70px;text-align:right;font-weight:700;font-size:0.95rem;color:var(--primary);">' +
-                    formatRs(subtotal) +
-                '</div>' +
-                '<!-- Remove button -->' +
-                '<button class="btn btn-sm btn-outline-danger cart-remove-btn" data-id="' + item.menu_item_id + '" ' +
-                    'type="button" style="border-radius:8px;font-size:0.78rem;padding:0.25rem 0.5rem;" ' +
-                    'title="Remove item">' +
-                    '<span style="pointer-events:none;">&#10005;</span>' +
-                '</button>' +
-            '</div>';
+    if (countEl) {
+      countEl.textContent = count + (count === 1 ? " item" : " items");
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Build full cart HTML (items + summary + actions)                   */
-    /* ------------------------------------------------------------------ */
-    function buildCartHTML(cart) {
-        var html = '';
-
-        // Items
-        for (var i = 0; i < cart.length; i++) {
-            html += buildCartItemHTML(cart[i], i);
-        }
-
-        // Summary
-        var total = 0;
-        var itemCount = 0;
-        for (var j = 0; j < cart.length; j++) {
-            total += cart[j].price * cart[j].quantity;
-            itemCount += cart[j].quantity;
-        }
-
-        html += '' +
-            '<div style="border-top:1.5px solid var(--border);margin-top:0.5rem;padding-top:0.75rem;">' +
-                '<div class="summary-row total" style="display:flex;justify-content:space-between;align-items:center;">' +
-                    '<span>' + itemCount + (itemCount === 1 ? ' item' : ' items') + '</span>' +
-                    '<span style="font-size:1.1rem;color:var(--primary);">' + formatRs(total) + '</span>' +
-                '</div>' +
-            '</div>';
-
-        // Action buttons
-        html += '' +
-            '<div class="d-grid gap-2 mt-3">' +
-                '<a href="/checkout" class="btn btn-primary py-2 fw-semibold" ' +
-                    'style="border-radius:10px;font-size:0.95rem;">' +
-                    'Proceed to Checkout' +
-                '</a>' +
-                '<button class="btn btn-outline-secondary py-2" id="clear-cart-btn" type="button" ' +
-                    'style="border-radius:10px;font-size:0.88rem;">' +
-                    'Clear Cart' +
-                '</button>' +
-            '</div>';
-
-        return html;
+    if (totalEl) {
+      totalEl.textContent = formatRs(total);
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Render the entire cart view                                       */
-    /* ------------------------------------------------------------------ */
-    function renderCart() {
+    bar.style.display = "";
+    document.body.classList.add("has-cart-bottom-bar");
+  }
+
+  function renderCart() {
+    var cart = getCart();
+
+    var contentEl = document.getElementById("cart-content");
+
+    var emptyEl = document.getElementById("cart-empty");
+
+    if (!contentEl || !emptyEl) return;
+
+    if (cart.length === 0) {
+      contentEl.style.display = "none";
+      contentEl.innerHTML = "";
+
+      emptyEl.style.display = "";
+
+      updateBottomBar([]);
+
+      return;
+    }
+
+    contentEl.style.display = "";
+    emptyEl.style.display = "none";
+
+    contentEl.innerHTML = buildCartHTML(cart);
+
+    updateBottomBar(cart);
+  }
+
+  function clearCart() {
+    if (!confirm("Clear all items from your cart?")) {
+      return;
+    }
+
+    saveCart([]);
+
+    renderCart();
+  }
+
+  function openDeliveryOptions() {
+    var cart = getCart();
+
+    if (!cart.length) {
+      renderCart();
+      return;
+    }
+
+    var modalEl = document.getElementById("deliveryOptionsModal");
+
+    /*
+     * If Bootstrap's modal isn't available,
+     * preserve the existing checkout flow.
+     */
+    if (!modalEl || !window.bootstrap || !bootstrap.Modal) {
+      window.location.href = "/checkout";
+      return;
+    }
+
+    var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+    modal.show();
+  }
+
+  function selectDeliveryOption(button) {
+    var buttons = document.querySelectorAll(".delivery-option");
+
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].classList.remove("selected");
+
+      var radio = buttons[i].querySelector(".delivery-radio");
+
+      if (radio) {
+        radio.checked = false;
+      }
+    }
+
+    button.classList.add("selected");
+
+    var selectedRadio = button.querySelector(".delivery-radio");
+
+    if (selectedRadio) {
+      selectedRadio.checked = true;
+    }
+  }
+
+  function submitDeliveryOption() {
+    var selected = document.querySelector(
+      ".delivery-option.selected .delivery-radio",
+    );
+
+    if (!selected) {
+      alert("Please choose your preferred order method.");
+
+      return;
+    }
+
+    /*
+     * Keep the existing order_type key.
+     * The checkout/payment backend already uses
+     * this value, so we don't change the backend contract.
+     */
+    localStorage.setItem(ORDER_TYPE_KEY, selected.value);
+
+    var modalEl = document.getElementById("deliveryOptionsModal");
+
+    if (modalEl && window.bootstrap && bootstrap.Modal) {
+      var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+      modal.hide();
+    }
+
+    window.location.href = "/checkout";
+  }
+
+  function initEventDelegation() {
+    var contentEl = document.getElementById("cart-content");
+
+    if (!contentEl) return;
+
+    contentEl.addEventListener("click", function (e) {
+      var target = e.target;
+
+      /*
+       * INCREASE QUANTITY
+       */
+      if (target.classList.contains("cart-qty-inc")) {
+        e.preventDefault();
+
+        var incId = parseInt(target.getAttribute("data-id"), 10);
+
+        if (isNaN(incId)) return;
+
         var cart = getCart();
-        var contentEl = document.getElementById('cart-content');
-        var emptyEl   = document.getElementById('cart-empty');
 
-        if (!contentEl || !emptyEl) return;
+        for (var i = 0; i < cart.length; i++) {
+          if (Number(cart[i].menu_item_id) === incId) {
+            cart[i].quantity = (Number(cart[i].quantity) || 0) + 1;
 
-        if (cart.length === 0) {
-            contentEl.style.display = 'none';
-            emptyEl.style.display = '';
-            return;
+            break;
+          }
         }
 
-        contentEl.style.display = '';
-        emptyEl.style.display = 'none';
-        contentEl.innerHTML = buildCartHTML(cart);
-    }
+        saveCart(cart);
 
-    /* ------------------------------------------------------------------ */
-    /*  Clear the entire cart                                              */
-    /* ------------------------------------------------------------------ */
-    function clearCart() {
-        if (!confirm('Clear all items from your cart?')) return;
-        saveCart([]);
         renderCart();
-    }
 
-    /* ------------------------------------------------------------------ */
-    /*  Event delegation for cart interactions                            */
-    /* ------------------------------------------------------------------ */
-    function initEventDelegation() {
-        var contentEl = document.getElementById('cart-content');
-        if (!contentEl) return;
+        return;
+      }
 
-        contentEl.addEventListener('click', function (e) {
-            var target = e.target;
+      /*
+       * DECREASE QUANTITY
+       */
+      if (target.classList.contains("cart-qty-dec")) {
+        e.preventDefault();
 
-            // --- Increment ---
-            if (target.classList.contains('cart-qty-inc')) {
-                e.preventDefault();
-                var incId = parseInt(target.getAttribute('data-id'), 10);
-                if (isNaN(incId)) return;
+        var decId = parseInt(target.getAttribute("data-id"), 10);
 
-                var cart = getCart();
-                for (var i = 0; i < cart.length; i++) {
-                    if (cart[i].menu_item_id === incId) {
-                        cart[i].quantity += 1;
-                        break;
-                    }
-                }
-                saveCart(cart);
-                renderCart();
-                return;
+        if (isNaN(decId)) return;
+
+        var decCart = getCart();
+
+        for (var j = 0; j < decCart.length; j++) {
+          if (Number(decCart[j].menu_item_id) === decId) {
+            decCart[j].quantity = (Number(decCart[j].quantity) || 0) - 1;
+
+            if (decCart[j].quantity <= 0) {
+              decCart.splice(j, 1);
             }
 
-            // --- Decrement ---
-            if (target.classList.contains('cart-qty-dec')) {
-                e.preventDefault();
-                var decId = parseInt(target.getAttribute('data-id'), 10);
-                if (isNaN(decId)) return;
+            break;
+          }
+        }
 
-                var decCart = getCart();
-                for (var j = 0; j < decCart.length; j++) {
-                    if (decCart[j].menu_item_id === decId) {
-                        decCart[j].quantity -= 1;
-                        if (decCart[j].quantity <= 0) {
-                            decCart.splice(j, 1);
-                        }
-                        break;
-                    }
-                }
-                saveCart(decCart);
-                renderCart();
-                return;
-            }
+        saveCart(decCart);
 
-            // --- Remove ---
-            if (target.classList.contains('cart-remove-btn') || target.closest('.cart-remove-btn')) {
-                e.preventDefault();
-                var btn = target.classList.contains('cart-remove-btn') ? target : target.closest('.cart-remove-btn');
-                var removeId = parseInt(btn.getAttribute('data-id'), 10);
-                if (isNaN(removeId)) return;
-
-                var rmCart = getCart();
-                for (var k = 0; k < rmCart.length; k++) {
-                    if (rmCart[k].menu_item_id === removeId) {
-                        rmCart.splice(k, 1);
-                        break;
-                    }
-                }
-                saveCart(rmCart);
-                renderCart();
-                return;
-            }
-
-            // --- Clear cart ---
-            if (target.id === 'clear-cart-btn' || target.closest('#clear-cart-btn')) {
-                e.preventDefault();
-                clearCart();
-                return;
-            }
-        });
-    }
-
-    /* ------------------------------------------------------------------ */
-    /*  HTML escape to prevent XSS in item names                          */
-    /* ------------------------------------------------------------------ */
-    function escapeHTML(str) {
-        var div = document.createElement('div');
-        div.appendChild(document.createTextNode(str));
-        return div.innerHTML;
-    }
-
-    /* ------------------------------------------------------------------ */
-    /*  Initialise on DOM ready                                           */
-    /* ------------------------------------------------------------------ */
-    function init() {
         renderCart();
-        initEventDelegation();
+
+        return;
+      }
+
+      /*
+       * REMOVE ITEM
+       */
+      if (
+        target.classList.contains("cart-remove") ||
+        target.closest(".cart-remove")
+      ) {
+        e.preventDefault();
+
+        var removeBtn = target.classList.contains("cart-remove")
+          ? target
+          : target.closest(".cart-remove");
+
+        var removeId = parseInt(removeBtn.getAttribute("data-id"), 10);
+
+        if (isNaN(removeId)) return;
+
+        var removeCart = getCart();
+
+        for (var k = 0; k < removeCart.length; k++) {
+          if (Number(removeCart[k].menu_item_id) === removeId) {
+            removeCart.splice(k, 1);
+
+            break;
+          }
+        }
+
+        saveCart(removeCart);
+
+        renderCart();
+
+        return;
+      }
+
+      /*
+       * CLEAR CART
+       */
+      if (target.id === "clear-cart-btn" || target.closest("#clear-cart-btn")) {
+        e.preventDefault();
+
+        clearCart();
+      }
+    });
+  }
+
+  function initDeliveryEvents() {
+    var optionButtons = document.querySelectorAll(".delivery-option");
+
+    for (var i = 0; i < optionButtons.length; i++) {
+      optionButtons[i].addEventListener("click", function () {
+        selectDeliveryOption(this);
+      });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
+    var proceedBtn = document.getElementById("proceed-order-btn");
+
+    if (proceedBtn) {
+      proceedBtn.addEventListener("click", openDeliveryOptions);
     }
+
+    var submitBtn = document.getElementById("delivery-submit");
+
+    if (submitBtn) {
+      submitBtn.addEventListener("click", submitDeliveryOption);
+    }
+  }
+
+  function init() {
+    renderCart();
+
+    initEventDelegation();
+
+    initDeliveryEvents();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 })();
