@@ -1,3 +1,4 @@
+from models.cafe import Cafe
 from models.customer import Customer
 from models.menu import MenuCategory, MenuItem
 from models.order import Order, OrderItem, OrderStatus

@@ -6,6 +6,12 @@ class MenuCategory(db.Model):
     __tablename__ = 'menu_categories'
 
     id = db.Column(db.Integer, primary_key=True)
+    cafe_id = db.Column(
+        db.Integer,
+        db.ForeignKey('cafes.id'),
+        nullable=True,
+        index=True
+    )
     name = db.Column(db.String(50), nullable=False, unique=True)
     display_order = db.Column(db.Integer, default=0)
 
@@ -19,6 +25,12 @@ class MenuItem(db.Model):
     __tablename__ = 'menu_items'
 
     id = db.Column(db.Integer, primary_key=True)
+    cafe_id = db.Column(
+        db.Integer,
+        db.ForeignKey('cafes.id'),
+        nullable=True,
+        index=True
+    )
     category_id = db.Column(db.Integer, db.ForeignKey('menu_categories.id'), nullable=False)
     item_number = db.Column(db.String(10), nullable=False)
     name = db.Column(db.String(100), nullable=False)

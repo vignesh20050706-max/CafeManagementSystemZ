@@ -28,6 +28,12 @@ class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.String(30), unique=True, nullable=False, index=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=False)
+    cafe_id = db.Column(
+        db.Integer,
+        db.ForeignKey('cafes.id'),
+        nullable=True,
+        index=True
+    )
     order_type = db.Column(db.String(10), nullable=False)  # 'takeaway' or 'dine_in'
     status = db.Column(db.String(20), nullable=False, default=OrderStatus.RECEIVED.value)
     total_amount = db.Column(db.Float, nullable=False)
