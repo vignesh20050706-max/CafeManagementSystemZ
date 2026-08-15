@@ -1,105 +1,315 @@
-{% extends "customer/base.html" %}
-{% block title %}Cart - {{ cafe_name }}{% endblock %}
-
-{% block extra_head %}
+{% extends "customer/base.html" %} {% block title %}Cart - {{ cafe_name }}{%
+endblock %} {% block extra_head %}
 <style>
-    .cart-page-title { font-size:1.15rem; font-weight:700; margin-bottom:1rem; }
-    .cart-card { background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden; }
-    .cart-item { display:flex; align-items:center; gap:.85rem; padding:.95rem; border-bottom:1px solid var(--border); }
-    .cart-item:last-child { border-bottom:0; }
-    .cart-item-info { flex:1; min-width:0; }
-    .cart-item-number { color:var(--muted); font-size:.72rem; font-weight:600; }
-    .cart-item-name { font-weight:650; color:var(--text); font-size:.94rem; }
-    .cart-item-price { color:var(--primary); font-size:.85rem; font-weight:700; margin-top:.15rem; }
-    .cart-item-subtotal { min-width:70px; text-align:right; font-weight:700; color:var(--primary); font-size:.92rem; }
-    .qty-control { display:inline-flex; align-items:center; border:1.5px solid var(--primary); border-radius:9px; overflow:hidden; flex-shrink:0; }
-    .qty-btn { width:32px; height:32px; border:0; background:transparent; color:var(--primary); font-size:1.05rem; font-weight:700; cursor:pointer; }
-    .qty-btn:hover { background:rgba(124,63,44,.08); }
-    .qty-val { width:28px; text-align:center; font-size:.88rem; font-weight:700; color:var(--primary); }
-    .cart-remove { width:30px; height:30px; border:0; background:transparent; color:var(--danger); font-size:.85rem; cursor:pointer; flex-shrink:0; }
-    .cart-summary { padding:1rem; border-top:1px solid var(--border); background:var(--bg); }
-    .cart-summary-row { display:flex; justify-content:space-between; align-items:center; font-size:.88rem; }
-    .cart-summary-row.total { font-size:1rem; font-weight:750; color:var(--text); margin-top:.45rem; }
-    .cart-summary-row.total span:last-child { color:var(--primary); font-size:1.1rem; }
-    .cart-bottom-bar { position:fixed; left:0; right:0; bottom:52px; z-index:1040; padding:.65rem .75rem; background:#fff; border-top:1px solid var(--border); box-shadow:0 -4px 18px rgba(0,0,0,.08); }
-    .cart-bottom-action { width:100%; border:0; border-radius:11px; background:var(--primary); color:#fff; min-height:58px; display:flex; align-items:center; justify-content:space-between; padding:.65rem 1rem; cursor:pointer; }
-    .cart-bottom-count { font-weight:700; font-size:.92rem; }
-    .cart-bottom-total { font-weight:750; font-size:1rem; }
-    .cart-bottom-proceed { font-weight:700; font-size:.95rem; white-space:nowrap; }
-    body.has-cart-bottom-bar { padding-bottom:135px !important; }
-    .delivery-option { width:100%; border:1px solid var(--border); border-radius:12px; background:#fff; padding:.9rem; text-align:left; cursor:pointer; transition:border-color .15s,background .15s; }
-    .delivery-option.selected { border-color:var(--primary); background:rgba(124,63,44,.04); }
-    .delivery-radio { width:18px; height:18px; accent-color:var(--primary); flex-shrink:0; }
-    .delivery-title { font-weight:700; font-size:.92rem; color:var(--text); }
-    .delivery-description { color:var(--muted); font-size:.77rem; margin-top:.15rem; }
-    .delivery-actions { display:grid; grid-template-columns:1fr 1fr; gap:.65rem; margin-top:1rem; }
-    .delivery-actions button { min-height:48px; border-radius:10px; font-weight:700; }
+  .cart-page-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  .cart-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .cart-item {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.95rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .cart-item:last-child {
+    border-bottom: 0;
+  }
+  .cart-item-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .cart-item-number {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+  .cart-item-name {
+    font-weight: 650;
+    color: var(--text);
+    font-size: 0.94rem;
+  }
+  .cart-item-price {
+    color: var(--primary);
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-top: 0.15rem;
+  }
+  .cart-item-subtotal {
+    min-width: 70px;
+    text-align: right;
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 0.92rem;
+  }
+  .qty-control {
+    display: inline-flex;
+    align-items: center;
+    border: 1.5px solid var(--primary);
+    border-radius: 9px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .qty-btn {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    background: transparent;
+    color: var(--primary);
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .qty-btn:hover {
+    background: rgba(124, 63, 44, 0.08);
+  }
+  .qty-val {
+    width: 28px;
+    text-align: center;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .cart-remove {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    background: transparent;
+    color: var(--danger);
+    font-size: 0.85rem;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .cart-summary {
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .cart-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.88rem;
+  }
+  .cart-summary-row.total {
+    font-size: 1rem;
+    font-weight: 750;
+    color: var(--text);
+    margin-top: 0.45rem;
+  }
+  .cart-summary-row.total span:last-child {
+    color: var(--primary);
+    font-size: 1.1rem;
+  }
+  .cart-bottom-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 52px;
+    z-index: 1040;
+    padding: 0.65rem 0.75rem;
+    background: #fff;
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.08);
+  }
+  .cart-bottom-action {
+    width: 100%;
+    border: 0;
+    border-radius: 11px;
+    background: var(--primary);
+    color: #fff;
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 1rem;
+    cursor: pointer;
+  }
+  .cart-bottom-count {
+    font-weight: 700;
+    font-size: 0.92rem;
+  }
+  .cart-bottom-total {
+    font-weight: 750;
+    font-size: 1rem;
+  }
+  .cart-bottom-proceed {
+    font-weight: 700;
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
+  body.has-cart-bottom-bar {
+    padding-bottom: 135px !important;
+  }
+  .delivery-option {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    padding: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      border-color 0.15s,
+      background 0.15s;
+  }
+  .delivery-option.selected {
+    border-color: var(--primary);
+    background: rgba(124, 63, 44, 0.04);
+  }
+  .delivery-radio {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+    flex-shrink: 0;
+  }
+  .delivery-title {
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--text);
+  }
+  .delivery-description {
+    color: var(--muted);
+    font-size: 0.77rem;
+    margin-top: 0.15rem;
+  }
+  .delivery-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    margin-top: 1rem;
+  }
+  .delivery-actions button {
+    min-height: 48px;
+    border-radius: 10px;
+    font-weight: 700;
+  }
 
-    @media (max-width:576px) {
-        .cart-item { gap:.55rem; padding:.8rem .7rem; }
-        .cart-item-subtotal { min-width:58px; font-size:.86rem; }
-        .qty-control { margin-left:auto; }
-        .cart-remove { width:28px; height:28px; }
+  @media (max-width: 576px) {
+    .cart-item {
+      gap: 0.55rem;
+      padding: 0.8rem 0.7rem;
     }
+    .cart-item-subtotal {
+      min-width: 58px;
+      font-size: 0.86rem;
+    }
+    .qty-control {
+      margin-left: auto;
+    }
+    .cart-remove {
+      width: 28px;
+      height: 28px;
+    }
+  }
 </style>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <h1 class="cart-page-title">Review Your Order</h1>
 
 <div id="cart-content" class="cart-card"></div>
 
-<div id="cart-empty" class="text-center py-5" style="display:none;">
-    <div style="font-size:3rem;opacity:.15;">&#128722;</div>
-    <h2 class="h6 mt-2 mb-1">Your cart is empty</h2>
-    <p class="text-muted small mb-3">Add items before continuing.</p>
-    <a href="/menu" class="btn btn-primary px-4 py-2">Browse Menu</a>
+<div id="cart-empty" class="text-center py-5" style="display: none">
+  <div style="font-size: 3rem; opacity: 0.15">&#128722;</div>
+  <h2 class="h6 mt-2 mb-1">Your cart is empty</h2>
+  <p class="text-muted small mb-3">Add items before continuing.</p>
+  <a href="/menu" class="btn btn-primary px-4 py-2">Browse Menu</a>
 </div>
 
-<div class="modal fade" id="deliveryOptionsModal" tabindex="-1" aria-labelledby="deliveryOptionsTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content" style="border-radius:16px;border:0;overflow:hidden;">
-            <div class="modal-body p-3 p-md-4">
-                <h2 id="deliveryOptionsTitle" class="h5 fw-bold mb-1">Delivery Options</h2>
-                <p class="text-muted small mb-3">Please choose your preferred order method</p>
+<div
+  class="modal fade"
+  id="deliveryOptionsModal"
+  tabindex="-1"
+  aria-labelledby="deliveryOptionsTitle"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div
+      class="modal-content"
+      style="border-radius: 16px; border: 0; overflow: hidden"
+    >
+      <div class="modal-body p-3 p-md-4">
+        <h2 id="deliveryOptionsTitle" class="h5 fw-bold mb-1">
+          Delivery Options
+        </h2>
+        <p class="text-muted small mb-3">
+          Please choose your preferred order method
+        </p>
 
-                <div class="d-flex flex-column gap-2">
-                    <button type="button" class="delivery-option selected" data-order-type="dine_in">
-                        <span class="d-flex align-items-start gap-3">
-                            <input class="delivery-radio mt-1" type="radio" name="delivery_method" value="dine_in" checked>
-                            <span>
-                                <span class="delivery-title d-block">Food Delivery To Your Seat</span>
-                                <span class="delivery-description d-block">For dine-in orders at the cafe.</span>
-                            </span>
-                        </span>
-                    </button>
+        <div class="d-flex flex-column gap-2">
+          <button
+            type="button"
+            class="delivery-option selected"
+            data-order-type="dine_in"
+          >
+            <span class="d-flex align-items-start gap-3">
+              <input
+                class="delivery-radio mt-1"
+                type="radio"
+                name="delivery_method"
+                value="dine_in"
+                checked
+              />
+              <span>
+                <span class="delivery-title d-block">Dine-in</span>
+                <span class="delivery-description d-block"
+                  >Eat here at the cafe.</span
+                >
+              </span>
+            </span>
+          </button>
 
-                    <button type="button" class="delivery-option" data-order-type="takeaway">
-                        <span class="d-flex align-items-start gap-3">
-                            <input class="delivery-radio mt-1" type="radio" name="delivery_method" value="takeaway">
-                            <span>
-                                <span class="delivery-title d-block">Takeaway</span>
-                                <span class="delivery-description d-block">Collect your order from the cafe.</span>
-                            </span>
-                        </span>
-                    </button>
-                </div>
-
-                <div class="delivery-actions">
-                    <button type="button" class="btn btn-primary" id="delivery-submit">Submit</button>
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                </div>
-            </div>
+          <button
+            type="button"
+            class="delivery-option"
+            data-order-type="takeaway"
+          >
+            <span class="d-flex align-items-start gap-3">
+              <input
+                class="delivery-radio mt-1"
+                type="radio"
+                name="delivery_method"
+                value="takeaway"
+              />
+              <span>
+                <span class="delivery-title d-block">Takeaway</span>
+                <span class="delivery-description d-block"
+                  >Collect your order from the cafe.</span
+                >
+              </span>
+            </span>
+          </button>
         </div>
+
+        <div class="delivery-actions">
+          <button type="button" class="btn btn-primary" id="delivery-submit">
+            Submit
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
     </div>
+  </div>
 </div>
 
-<div class="cart-bottom-bar" id="cart-bottom-bar" style="display:none;">
-    <button type="button" class="cart-bottom-action" id="proceed-order-btn">
-        <span class="cart-bottom-count" id="cart-bottom-count">0 items</span>
-        <span class="cart-bottom-total" id="cart-bottom-total">Rs.0</span>
-        <span class="cart-bottom-proceed">PROCEED &#8594;</span>
-    </button>
+<div class="cart-bottom-bar" id="cart-bottom-bar" style="display: none">
+  <button type="button" class="cart-bottom-action" id="proceed-order-btn">
+    <span class="cart-bottom-count" id="cart-bottom-count">0 items</span>
+    <span class="cart-bottom-total" id="cart-bottom-total">Rs.0</span>
+    <span class="cart-bottom-proceed">PROCEED &#8594;</span>
+  </button>
 </div>
 
 <script src="/static/js/cart.js"></script>
