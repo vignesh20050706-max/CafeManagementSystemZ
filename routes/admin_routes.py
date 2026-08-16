@@ -6,6 +6,7 @@ from datetime import datetime, timezone, timedelta
 from unicodedata import category
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session, send_file, current_app, stream_with_context
 from database.database import db
+from models import order
 from models.admin import Admin
 from models.order import Order, OrderItem, OrderStatus, VALID_TRANSITIONS
 from models.payment import Payment, PaymentStatus
@@ -538,7 +539,14 @@ def set_cafe_status():
     new_status = data.get('status')
     if new_status not in ['open', 'closed', 'high_order_mode']:
         return jsonify({'error': 'Invalid status'}), 400
-    CafeStatus.set_status(new_status)
+
+    cafe_id = get_admin_cafe_id()
+
+    CafeStatus.set_status(
+        new_status,
+        cafe_id=cafe_id
+    )
+
     return jsonify({'success': True})
 
 
@@ -557,7 +565,7 @@ def order_events():
     """
 
     from services.order_events import order_event_bus
-
+    admin_cafe_id = get_admin_cafe_id()
     # Capture the actual Flask application object BEFORE the
     # response starts streaming.
     app = current_app._get_current_object()
@@ -574,14 +582,15 @@ def order_events():
         # Start after the latest already-paid order so old orders
         # never trigger a notification.
         latest_paid = (
-            Order.query
-            .join(Payment, Payment.order_id == Order.id)
-            .filter(
-                Payment.status == PaymentStatus.SUCCESS.value
-            )
-            .order_by(Order.id.desc())
-            .first()
-        )
+    Order.query
+    .join(Payment, Payment.order_id == Order.id)
+    .filter(
+        Payment.status == PaymentStatus.SUCCESS.value,
+        Order.cafe_id == admin_cafe_id
+    )
+    .order_by(Order.id.desc())
+    .first()
+)
 
         last_seen_id = latest_paid.id if latest_paid else 0
 
@@ -611,7 +620,8 @@ def order_events():
                     )
                     .filter(
                         Payment.status ==
-                        PaymentStatus.SUCCESS.value
+                        PaymentStatus.SUCCESS.value,
+                        Order.cafe_id == admin_cafe_id
                     )
                     .filter(
                         Order.id > current_last_id
@@ -651,7 +661,9 @@ def order_events():
             while True:
 
                 try:
-                    cafe = CafeStatus.get()
+                    cafe = CafeStatus.get(
+    admin_cafe_id
+)
 
                     # --------------------------------------------------
                     # CAFE CLOSED
@@ -700,7 +712,10 @@ def order_events():
                                 if not order:
                                     continue
 
-                                payload = {
+                                if order.cafe_id != admin_cafe_id:
+                                    continue
+
+                                    payload = {
                                     'type': 'new_order',
                                     'order': {
                                         **order.to_dict(),
