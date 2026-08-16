@@ -379,65 +379,112 @@ def update_menu_item(item_id):
     cafe_id = get_admin_cafe_id()
 
     item = (
-    MenuItem.query
-    .filter_by(
-        id=item_id,
-        cafe_id=cafe_id
+        MenuItem.query
+        .filter_by(
+            id=item_id,
+            cafe_id=cafe_id
+        )
+        .first_or_404()
     )
-    .first_or_404()
-)
 
     if request.method == 'GET':
         return jsonify(item.to_dict())
 
     data = request.get_json(silent=True) or request.form
 
-    for field in ['name', 'description', 'item_number', 'is_available', 'is_daily_special', 'category_id']:
-        if field in data:
-            value = data.get(field)
-            if field in ['category_id'] and value not in (None, ''):
-                try:
-                    value = int(value)
-                except (TypeError, ValueError):
-                    return jsonify({'error': 'Invalid category'}), 400
+    for field in [
+        'name',
+        'description',
+        'item_number',
+        'is_available',
+        'is_daily_special',
+        'category_id'
+    ]:
+        if field not in data:
+            continue
 
-    category = (
-        MenuCategory.query
-        .filter_by(
-            id=value,
-            cafe_id=cafe_id
-        )
-        .first()
-    )
+        value = data.get(field)
 
-    if not category:
-        return jsonify({
-            'error': 'Invalid category for this cafe'
-        }), 400
+        if field == 'category_id' and value not in (None, ''):
+            try:
+                value = int(value)
+            except (TypeError, ValueError):
+                return jsonify({
+                    'error': 'Invalid category'
+                }), 400
 
-    elif field in ['is_available', 'is_daily_special'] and isinstance(value, str):
-                value = value.lower() in ('true', '1', 'yes', 'on')
-                setattr(item, field, value)
+            category = (
+                MenuCategory.query
+                .filter_by(
+                    id=value,
+                    cafe_id=cafe_id
+                )
+                .first()
+            )
+
+            if not category:
+                return jsonify({
+                    'error': 'Invalid category for this cafe'
+                }), 400
+
+        elif field in [
+            'is_available',
+            'is_daily_special'
+        ] and isinstance(value, str):
+            value = value.lower() in (
+                'true',
+                '1',
+                'yes',
+                'on'
+            )
+
+        setattr(item, field, value)
 
     if 'price' in data:
         try:
             item.price = float(data.get('price'))
         except (TypeError, ValueError):
-            return jsonify({'error': 'Invalid price'}), 400
+            return jsonify({
+                'error': 'Invalid price'
+            }), 400
 
-    if 'image' in request.files and request.files['image'].filename:
+    if (
+        'image' in request.files
+        and request.files['image'].filename
+    ):
         from werkzeug.utils import secure_filename
-        filename = secure_filename(request.files['image'].filename)
-        upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
-        os.makedirs(upload_dir, exist_ok=True)
-        filepath = os.path.join(upload_dir, filename)
+
+        filename = secure_filename(
+            request.files['image'].filename
+        )
+
+        upload_dir = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            'uploads'
+        )
+
+        os.makedirs(
+            upload_dir,
+            exist_ok=True
+        )
+
+        filepath = os.path.join(
+            upload_dir,
+            filename
+        )
+
         request.files['image'].save(filepath)
+
         item.image = f'uploads/{filename}'
+
     elif 'image' in data and data.get('image'):
         item.image = data.get('image')
 
     db.session.commit()
-    return jsonify({'success': True})
+
+    return jsonify({
+        'success': True
+    })
 
 
 @admin_bp.route('/api/menu/items/<int:item_id>', methods=['DELETE'])
