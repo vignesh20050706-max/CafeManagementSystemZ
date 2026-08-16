@@ -258,7 +258,7 @@ def add_category():
     name = str(data.get('name', '')).strip()
     if not name:
         return jsonify({'error': 'Name required'}), 400
-    
+
     cafe_id = get_admin_cafe_id()
 
     cat = MenuCategory(
@@ -582,15 +582,15 @@ def order_events():
         # Start after the latest already-paid order so old orders
         # never trigger a notification.
         latest_paid = (
-    Order.query
-    .join(Payment, Payment.order_id == Order.id)
-    .filter(
-        Payment.status == PaymentStatus.SUCCESS.value,
-        Order.cafe_id == admin_cafe_id
-    )
-    .order_by(Order.id.desc())
-    .first()
-)
+            Order.query
+            .join(Payment, Payment.order_id == Order.id)
+            .filter(
+                Payment.status == PaymentStatus.SUCCESS.value,
+                Order.cafe_id == admin_cafe_id
+            )
+            .order_by(Order.id.desc())
+            .first()
+        )
 
         last_seen_id = latest_paid.id if latest_paid else 0
 
@@ -662,8 +662,8 @@ def order_events():
 
                 try:
                     cafe = CafeStatus.get(
-    admin_cafe_id
-)
+                        admin_cafe_id
+                    )
 
                     # --------------------------------------------------
                     # CAFE CLOSED
@@ -715,7 +715,7 @@ def order_events():
                                 if order.cafe_id != admin_cafe_id:
                                     continue
 
-                                    payload = {
+                                payload = {
                                     'type': 'new_order',
                                     'order': {
                                         **order.to_dict(),
