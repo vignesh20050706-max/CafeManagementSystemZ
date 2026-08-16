@@ -41,7 +41,10 @@
     <button
       type="button"
       class="btn btn-sm btn-outline-danger"
-      onclick="deleteCategory({{ category.id }}, {{ category.name|tojson }}, {{ (category.items|length if category.items else 0) }})"
+      data-action="delete-category"
+data-category-id="{{ category.id }}"
+data-category-name="{{ category.name }}"
+data-item-count="{{ category.items|length if category.items else 0 }}""
       title="Delete category"
     >
       Delete Category
@@ -86,7 +89,9 @@
               <button
                 class="btn btn-sm {% if item.is_available %}btn-outline-success{% else %}btn-outline-secondary{% endif %}"
                 style="font-size: 0.78rem; padding: 2px 8px"
-                onclick="toggleAvailability({{ item.id }}, {% if item.is_available %}false{% else %}true{% endif %})"
+                data-action="toggle-availability"
+                data-item-id="{{ item.id }}"
+                data-new-value="{{ 'false' if item.is_available else 'true' }}"
               >
                 {{ 'Yes' if item.is_available else 'No' }}
               </button>
@@ -95,7 +100,9 @@
               <button
                 class="btn btn-sm {% if item.is_daily_special %}btn-outline-warning text-warning{% else %}btn-outline-secondary{% endif %}"
                 style="font-size: 0.78rem; padding: 2px 8px"
-                onclick="toggleDailySpecial({{ item.id }}, {% if item.is_daily_special %}false{% else %}true{% endif %})"
+                data-action="toggle-daily-special"
+data-item-id="{{ item.id }}"
+data-new-value="{{ 'false' if item.is_daily_special else 'true' }}""
               >
                 {% if item.is_daily_special %}★{% else %}☆{% endif %}
               </button>
@@ -103,18 +110,21 @@
             <td class="text-center">
               <button
                 class="btn btn-sm btn-outline-secondary"
-                onclick="editItem({{ item.id }})"
+                data-action="edit-item"
+data-item-id="{{ item.id }}""
                 title="Edit"
               >
                 &#9998;
               </button>
               <button
-                class="btn btn-sm btn-outline-danger"
-                onclick="deleteItem({{ item.id }}, '{{ item.name }}')"
-                title="Delete"
-              >
-                &#10007;
-              </button>
+  class="btn btn-sm btn-outline-danger"
+  data-action="delete-item"
+  data-item-id="{{ item.id }}"
+  data-item-name="{{ item.name }}"
+  title="Delete"
+>
+  &#10007;
+</button>
             </td>
           </tr>
           {% endfor %}
@@ -267,6 +277,7 @@
   function addCategory() {
     var input = document.getElementById("newCategoryName");
     var name = input.value.trim();
+
     if (!name) {
       input.focus();
       return;
@@ -274,8 +285,12 @@
 
     fetch("{{ url_for('admin_routes.add_category') }}", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: name,
+      }),
     })
       .then(function (r) {
         if (r.ok) {
@@ -294,22 +309,39 @@
   // Delete Category
   function deleteCategory(categoryId, categoryName, itemCount) {
     if (itemCount > 0) {
-      alert('Cannot delete "' + categoryName + '" because it contains ' + itemCount + ' menu item(s). Remove or reassign the items first.');
+      alert(
+        'Cannot delete "' +
+          categoryName +
+          '" because it contains ' +
+          itemCount +
+          " menu item(s). Remove or reassign the items first.",
+      );
       return;
     }
 
-    if (!confirm('Delete the category "' + categoryName + '"? This cannot be undone.')) {
+    if (
+      !confirm(
+        'Delete the category "' + categoryName + '"? This cannot be undone.',
+      )
+    ) {
       return;
     }
 
-    fetch('/admin/api/menu/categories/' + categoryId, {
-      method: 'DELETE',
+    var deleteUrl =
+      "{{ url_for('admin_routes.delete_category', category_id=0) }}".replace(
+        "/0",
+        "/" + categoryId,
+      );
+
+    fetch(deleteUrl, {
+      method: "DELETE",
     })
       .then(function (r) {
         return r.json().then(function (data) {
           if (!r.ok) {
-            throw new Error(data.error || 'Failed to delete category.');
+            throw new Error(data.error || "Failed to delete category.");
           }
+
           return data;
         });
       })
@@ -317,16 +349,26 @@
         window.location.reload();
       })
       .catch(function (err) {
-        alert(err.message || 'Network error.');
+        alert(err.message || "Network error.");
       });
   }
 
   // Toggle Availability
   function toggleAvailability(itemId, newVal) {
-    fetch("{{ url_for('admin_routes.update_menu_item', item_id=0) }}".replace('/0', '/' + itemId), {
+    var url =
+      "{{ url_for('admin_routes.update_menu_item', item_id=0) }}".replace(
+        "/0",
+        "/" + itemId,
+      );
+
+    fetch(url, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_available: newVal }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        is_available: newVal,
+      }),
     })
       .then(function (r) {
         if (r.ok) {
@@ -342,10 +384,20 @@
 
   // Toggle Daily Special
   function toggleDailySpecial(itemId, newVal) {
-    fetch("{{ url_for('admin_routes.update_menu_item', item_id=0) }}".replace('/0', '/' + itemId), {
+    var url =
+      "{{ url_for('admin_routes.update_menu_item', item_id=0) }}".replace(
+        "/0",
+        "/" + itemId,
+      );
+
+    fetch(url, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_daily_special: newVal }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        is_daily_special: newVal,
+      }),
     })
       .then(function (r) {
         if (r.ok) {
@@ -361,9 +413,17 @@
 
   // Delete Item
   function deleteItem(itemId, itemName) {
-    if (!confirm('Delete "' + itemName + '"? This cannot be undone.')) return;
+    if (!confirm('Delete "' + itemName + '"? This cannot be undone.')) {
+      return;
+    }
 
-    fetch("{{ url_for('admin_routes.delete_menu_item', item_id=0) }}".replace('/0', '/' + itemId), {
+    var url =
+      "{{ url_for('admin_routes.delete_menu_item', item_id=0) }}".replace(
+        "/0",
+        "/" + itemId,
+      );
+
+    fetch(url, {
       method: "DELETE",
     })
       .then(function (r) {
@@ -378,24 +438,34 @@
       });
   }
 
-  // Edit Item (populate modal)
+  // Edit Item
   function editItem(itemId) {
     document.getElementById("editItemId").value = itemId;
     document.getElementById("itemModalTitle").textContent = "Edit Item";
     document.getElementById("itemSubmitBtn").textContent = "Save Changes";
 
-    // Find the row and populate
-    fetch("{{ url_for('admin_routes.update_menu_item', item_id=0) }}".replace('/0', '/' + itemId))
+    var url =
+      "{{ url_for('admin_routes.update_menu_item', item_id=0) }}".replace(
+        "/0",
+        "/" + itemId,
+      );
+
+    fetch(url)
       .then(function (r) {
         return r.json();
       })
       .then(function (item) {
         document.getElementById("itemName").value = item.name || "";
+
         document.getElementById("itemCategory").value = item.category_id || "";
+
         document.getElementById("itemNumber").value = item.item_number || "";
+
         document.getElementById("itemPrice").value = item.price || "";
+
         document.getElementById("itemDescription").value =
           item.description || "";
+
         itemModal.show();
       })
       .catch(function () {
@@ -406,10 +476,12 @@
   // Reset modal when adding new
   document
     .getElementById("addItemModal")
-    .addEventListener("show.bs.modal", function (e) {
+    .addEventListener("show.bs.modal", function () {
       if (!document.getElementById("editItemId").value) {
         document.getElementById("itemForm").reset();
+
         document.getElementById("itemModalTitle").textContent = "Add Item";
+
         document.getElementById("itemSubmitBtn").textContent = "Add Item";
       }
     });
@@ -419,17 +491,29 @@
     .getElementById("addItemModal")
     .addEventListener("hidden.bs.modal", function () {
       document.getElementById("editItemId").value = "";
+
       document.getElementById("itemForm").reset();
+
       document.getElementById("itemModalTitle").textContent = "Add Item";
+
       document.getElementById("itemSubmitBtn").textContent = "Add Item";
     });
 
   // Form submit
   document.getElementById("itemForm").addEventListener("submit", function (e) {
     e.preventDefault();
+
     var editId = document.getElementById("editItemId").value;
+
     var formData = new FormData(this);
-    var url = editId ? "{{ url_for('admin_routes.update_menu_item', item_id=0) }}".replace('/0', '/' + editId) : "{{ url_for('admin_routes.add_menu_item') }}";
+
+    var url = editId
+      ? "{{ url_for('admin_routes.update_menu_item', item_id=0) }}".replace(
+          "/0",
+          "/" + editId,
+        )
+      : "{{ url_for('admin_routes.add_menu_item') }}";
+
     var method = editId ? "PATCH" : "POST";
 
     fetch(url, {
@@ -459,5 +543,86 @@
         addCategory();
       }
     });
+
+      // ==========================================================
+  // MENU BUTTON EVENT HANDLERS
+  // ==========================================================
+
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest("[data-action]");
+
+    if (!button) {
+      return;
+    }
+
+    var action = button.dataset.action;
+
+    // ----------------------------------------------------------
+    // Toggle Availability
+    // ----------------------------------------------------------
+    if (action === "toggle-availability") {
+      var itemId = Number(button.dataset.itemId);
+      var newValue = button.dataset.newValue === "true";
+
+      toggleAvailability(itemId, newValue);
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // Toggle Daily Special
+    // ----------------------------------------------------------
+    if (action === "toggle-daily-special") {
+      var itemId = Number(button.dataset.itemId);
+      var newValue = button.dataset.newValue === "true";
+
+      toggleDailySpecial(itemId, newValue);
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // Edit Item
+    // ----------------------------------------------------------
+    if (action === "edit-item") {
+      var itemId = Number(button.dataset.itemId);
+
+      editItem(itemId);
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // Delete Item
+    // ----------------------------------------------------------
+    if (action === "delete-item") {
+      var itemId = Number(button.dataset.itemId);
+      var itemName = button.dataset.itemName || "";
+
+      deleteItem(itemId, itemName);
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // Delete Category
+    // ----------------------------------------------------------
+    if (action === "delete-category") {
+      var categoryId = Number(
+        button.dataset.categoryId
+      );
+
+      var categoryName =
+        button.dataset.categoryName || "";
+
+      var itemCount = Number(
+        button.dataset.itemCount || 0
+      );
+
+      deleteCategory(
+        categoryId,
+        categoryName,
+        itemCount
+      );
+
+      return;
+    }
+  });
 </script>
 {% endblock %}
