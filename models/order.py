@@ -69,7 +69,13 @@ class Order(db.Model):
             'rejection_reason': self.rejection_reason,
             'refund_status': self.refund_status,
             'estimated_minutes': self.estimated_minutes,
-            'estimated_ready_time': self.estimated_ready_time.isoformat() if self.estimated_ready_time else None,
+            'estimated_ready_time': (
+    self.estimated_ready_time.replace(
+        tzinfo=timezone.utc
+    ).isoformat()
+    if self.estimated_ready_time
+    else None
+),
             'customer_name': self.customer.name if self.customer else None,
             'customer_mobile': self.customer.mobile if self.customer else None,
             'items': [item.to_dict() for item in self.items],

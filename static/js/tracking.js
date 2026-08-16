@@ -142,6 +142,71 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  function updateCountdown(order) {
+    const section = document.getElementById("countdown-section");
+    const timer = document.getElementById("countdown-timer");
+
+    if (!section || !timer) {
+      return;
+    }
+
+    if (
+      !order.estimated_ready_time ||
+      ["ready", "delivered", "rejected"].includes(order.status)
+    ) {
+      section.classList.add("d-none");
+      return;
+    }
+
+    section.classList.remove("d-none");
+
+    const readyTime = new Date(order.estimated_ready_time);
+
+    if (Number.isNaN(readyTime.getTime())) {
+      timer.textContent = "--:--";
+      return;
+    }
+
+    const updateTimer = function () {
+      const remaining = readyTime.getTime() - Date.now();
+
+      if (remaining <= 0) {
+        timer.textContent = "00:00";
+        return;
+      }
+
+      const totalSeconds = Math.floor(remaining / 1000);
+
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      if (hours > 0) {
+        timer.textContent =
+          String(hours).padStart(2, "0") +
+          ":" +
+          String(minutes).padStart(2, "0") +
+          ":" +
+          String(seconds).padStart(2, "0");
+      } else {
+        timer.textContent =
+          String(minutes).padStart(2, "0") +
+          ":" +
+          String(seconds).padStart(2, "0");
+      }
+    };
+
+    updateTimer();
+
+    if (window.countdownInterval) {
+      clearInterval(window.countdownInterval);
+    }
+
+    window.countdownInterval = setInterval(function () {
+      updateTimer();
+    }, 1000);
+  }
+
   function checkForChanges(order) {
     if (lastStatus !== null && lastStatus !== order.status) {
       const messages = {
@@ -195,6 +260,7 @@ document.addEventListener("DOMContentLoaded", function () {
         checkForChanges(order);
         updateStatus(order);
         updateRejectionBanner(order);
+        updateCountdown(order);
       })
       .catch(function (error) {
         console.error("Tracking update failed:", error);
