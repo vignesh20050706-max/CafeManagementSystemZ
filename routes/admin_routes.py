@@ -237,21 +237,28 @@ def add_category():
 def delete_category(category_id):
     category = MenuCategory.query.get_or_404(category_id)
 
-    # Never delete a category that still contains menu items.
-    if category.items:
+    item_count = (
+        MenuItem.query
+        .filter(MenuItem.category_id == category.id)
+        .count()
+    )
+
+    if item_count > 0:
         return jsonify({
             'error': (
                 f'Cannot delete "{category.name}" because it contains '
-                f'{len(category.items)} menu item(s). Delete or move the items first.'
+                f'{item_count} menu item(s). Delete or move the items first.'
             )
         }), 409
+
+    category_name = category.name
 
     db.session.delete(category)
     db.session.commit()
 
     return jsonify({
         'success': True,
-        'message': f'Category "{category.name}" deleted successfully.'
+        'message': f'Category "{category_name}" deleted successfully.'
     })
 
 
