@@ -169,14 +169,28 @@ def get_today_revenue(cafe_id=None):
     )
 
 
-def search_orders(query):
+def search_orders(query, cafe_id=None):
     """Search orders by order_id, customer name, or mobile."""
     q = f'%{query}%'
-    return Order.query.filter(
+
+    filters = [
         (Order.order_id.ilike(q)) |
         (Order.customer.has(Customer.name.ilike(q))) |
         (Order.customer.has(Customer.mobile.ilike(q)))
-    ).order_by(Order.created_at.desc()).limit(50).all()
+    ]
+
+    if cafe_id is not None:
+        filters.append(
+            Order.cafe_id == cafe_id
+        )
+
+    return (
+        Order.query
+        .filter(*filters)
+        .order_by(Order.created_at.desc())
+        .limit(50)
+        .all()
+    )
 
 
 def cleanup_old_orders():

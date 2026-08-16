@@ -3,6 +3,7 @@ import json
 import logging
 import time
 from datetime import datetime, timezone, timedelta
+from unicodedata import category
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session, send_file, current_app, stream_with_context
 from database.database import db
 from models.admin import Admin
@@ -137,14 +138,36 @@ def orders():
 @admin_bp.route('/orders/<int:order_db_id>')
 @admin_required
 def order_detail(order_db_id):
-    order = Order.query.get_or_404(order_db_id)
-    return render_template('admin/order_details.html', order=order)
+    cafe_id = get_admin_cafe_id()
+
+    order = (
+        Order.query
+        .filter_by(
+            id=order_db_id,
+            cafe_id=cafe_id
+        )
+        .first_or_404()
+    )
+
+    return render_template(
+        'admin/order_details.html',
+        order=order
+    )
 
 
 @admin_bp.route('/api/orders/<int:order_db_id>/status', methods=['PATCH'])
 @admin_required
 def update_order_status(order_db_id):
-    order = Order.query.get_or_404(order_db_id)
+    cafe_id = get_admin_cafe_id()
+
+    order = (
+        Order.query
+        .filter_by(
+            id=order_db_id,
+            cafe_id=cafe_id
+        )
+        .first_or_404()
+    )
     data = request.get_json(silent=True) or request.form
     new_status_str = data.get('status')
     estimated_minutes = data.get('estimated_minutes')
@@ -212,8 +235,19 @@ def update_order_status(order_db_id):
 @admin_bp.route('/menu')
 @admin_required
 def menu_management():
-    categories = MenuCategory.query.order_by(MenuCategory.display_order).all()
-    return render_template('admin/menu.html', categories=categories)
+    cafe_id = get_admin_cafe_id()
+
+    categories = (
+        MenuCategory.query
+        .filter_by(cafe_id=cafe_id)
+        .order_by(MenuCategory.display_order)
+        .all()
+    )
+
+    return render_template(
+        'admin/menu.html',
+        categories=categories
+    )
 
 
 @admin_bp.route('/api/menu/categories', methods=['POST'])
@@ -223,11 +257,18 @@ def add_category():
     name = str(data.get('name', '')).strip()
     if not name:
         return jsonify({'error': 'Name required'}), 400
+    
+    cafe_id = get_admin_cafe_id()
 
     cat = MenuCategory(
-        name=name,
-        display_order=MenuCategory.query.count() + 1,
-    )
+    cafe_id=cafe_id,
+    name=name,
+    display_order=(
+        MenuCategory.query
+        .filter_by(cafe_id=cafe_id)
+        .count() + 1
+    ),
+)
     db.session.add(cat)
     db.session.commit()
     return jsonify({'success': True, 'id': cat.id})
@@ -235,7 +276,16 @@ def add_category():
 @admin_bp.route('/api/menu/categories/<int:category_id>', methods=['DELETE'])
 @admin_required
 def delete_category(category_id):
-    category = MenuCategory.query.get_or_404(category_id)
+    cafe_id = get_admin_cafe_id()
+
+    category = (
+    MenuCategory.query
+    .filter_by(
+        id=category_id,
+        cafe_id=cafe_id
+    )
+    .first_or_404()
+)
 
     item_count = (
         MenuItem.query
@@ -282,6 +332,22 @@ def add_menu_item():
     if not name or category_id is None or price is None or not item_number:
         return jsonify({'error': 'Required fields missing'}), 400
 
+    cafe_id = get_admin_cafe_id()
+
+    category = (
+    MenuCategory.query
+    .filter_by(
+        id=category_id,
+        cafe_id=cafe_id
+    )
+    .first()
+)
+
+    if not category:
+        return jsonify({
+        'error': 'Invalid category for this cafe'
+    }), 400
+
     image_path = None
     if 'image' in request.files and request.files['image'].filename:
         from werkzeug.utils import secure_filename
@@ -293,6 +359,7 @@ def add_menu_item():
         image_path = f'uploads/{filename}'
 
     item = MenuItem(
+        cafe_id=cafe_id,
         category_id=category_id,
         item_number=item_number,
         name=name,
@@ -309,7 +376,16 @@ def add_menu_item():
 @admin_bp.route('/api/menu/items/<int:item_id>', methods=['GET', 'PATCH'])
 @admin_required
 def update_menu_item(item_id):
-    item = MenuItem.query.get_or_404(item_id)
+    cafe_id = get_admin_cafe_id()
+
+    item = (
+    MenuItem.query
+    .filter_by(
+        id=item_id,
+        cafe_id=cafe_id
+    )
+    .first_or_404()
+)
 
     if request.method == 'GET':
         return jsonify(item.to_dict())
@@ -324,9 +400,24 @@ def update_menu_item(item_id):
                     value = int(value)
                 except (TypeError, ValueError):
                     return jsonify({'error': 'Invalid category'}), 400
-            elif field in ['is_available', 'is_daily_special'] and isinstance(value, str):
+
+    category = (
+        MenuCategory.query
+        .filter_by(
+            id=value,
+            cafe_id=cafe_id
+        )
+        .first()
+    )
+
+    if not category:
+        return jsonify({
+            'error': 'Invalid category for this cafe'
+        }), 400
+
+    elif field in ['is_available', 'is_daily_special'] and isinstance(value, str):
                 value = value.lower() in ('true', '1', 'yes', 'on')
-            setattr(item, field, value)
+                setattr(item, field, value)
 
     if 'price' in data:
         try:
@@ -352,7 +443,15 @@ def update_menu_item(item_id):
 @admin_bp.route('/api/menu/items/<int:item_id>', methods=['DELETE'])
 @admin_required
 def delete_menu_item(item_id):
-    item = MenuItem.query.get_or_404(item_id)
+    cafe_id = get_admin_cafe_id()
+    item = (
+        MenuItem.query
+        .filter_by(
+            id=item_id,
+            cafe_id=cafe_id
+        )
+        .first_or_404()
+    )
     db.session.delete(item)
     db.session.commit()
     return jsonify({'success': True})
@@ -362,11 +461,27 @@ def delete_menu_item(item_id):
 @admin_required
 def history():
     query = request.args.get('q', '').strip()
+    cafe_id = get_admin_cafe_id()
+
     if query:
-        orders = order_service.search_orders(query)
+        orders = order_service.search_orders(
+            query,
+            cafe_id=cafe_id
+        )
     else:
-        orders = Order.query.order_by(Order.created_at.desc()).limit(50).all()
-    return render_template('admin/history.html', orders=orders, query=query)
+        orders = (
+            Order.query
+            .filter(Order.cafe_id == cafe_id)
+            .order_by(Order.created_at.desc())
+            .limit(50)
+            .all()
+        )
+
+    return render_template(
+        'admin/history.html',
+        orders=orders,
+        query=query
+    )
 
 
 @admin_bp.route('/api/cafe-status', methods=['PATCH'])
