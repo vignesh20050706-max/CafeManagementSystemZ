@@ -2,6 +2,7 @@ import json
 import logging
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session, current_app
 from database.database import db
+from models.table import CafeTable
 from models.menu import MenuCategory, MenuItem
 from models.order import Order, OrderItem, OrderStatus
 from models.payment import Payment, PaymentStatus
@@ -55,12 +56,59 @@ def home():
         categories=categories,
         cafe_status=cafe_status_obj.status
     )
+    
+    @customer_bp.route('/table/<int:table_id>')
+def table_entry(table_id):
+    """Enter the cafe ordering flow from a physical table QR code."""
+
+    cafe = get_default_cafe()
+
+    if not cafe:
+        return redirect(
+            url_for('customer_routes.home')
+        )
+
+    table = (
+        CafeTable.query
+        .filter_by(
+            id=table_id,
+            cafe_id=cafe.id,
+            is_active=True
+        )
+        .first()
+    )
+
+    if not table:
+        return redirect(
+            url_for('customer_routes.home')
+        )
+
+    cafe_status_obj = CafeStatus.get(cafe.id)
+
+    if cafe_status_obj.status != 'open':
+        return redirect(
+            url_for('customer_routes.home')
+        )
+
+    # Lock this customer's ordering session to this physical table.
+    session['table_id'] = table.id
+    session['table_number'] = table.table_number
+    session['order_type'] = 'dine_in'
+
+    return redirect(
+        url_for('customer_routes.menu')
+    )
+    
 @customer_bp.route('/order-type')
 def order_type():
     """Choose takeaway or dine-in."""
     cafe = get_default_cafe()
 
     if not cafe:
+        if session.get('table_id'):
+            return redirect(
+                url_for('customer_routes.menu')
+    )
         return redirect(
             url_for('customer_routes.home')
         )
@@ -181,7 +229,13 @@ def checkout():
     cafe_status_obj = CafeStatus.get(cafe.id)
     if cafe_status_obj.status != 'open':
         return redirect(url_for('customer_routes.home'))
-    return render_template('customer/checkout.html', cafe_status=cafe_status_obj.status)
+    table_number = session.get('table_number')
+
+    return render_template(
+        'customer/checkout.html',
+        cafe_status=cafe_status_obj.status,
+        table_number=table_number
+)
 
 
 @customer_bp.route('/api/payment/create', methods=['POST'])
@@ -229,10 +283,47 @@ def create_payment():
     if not whatsapp_valid:
         return jsonify({'error': 'WhatsApp number is required and must be 10 digits'}), 400
 
-    order_type = data.get('order_type', 'takeaway')
+    table_id = session.get('table_id')
+    table_number = session.get('table_number')
 
-    if order_type not in ['takeaway', 'dine_in']:
-        return jsonify({'error': 'Invalid order type'}), 400
+    if table_id:
+        table = (
+            CafeTable.query
+            .filter_by(
+                id=table_id,
+                cafe_id=cafe.id,
+                is_active=True
+            )
+            .first()
+        )
+
+        if not table:
+            session.pop('table_id', None)
+            session.pop('table_number', None)
+            session.pop('order_type', None)
+
+            return jsonify({
+                'error': 'The selected table is no longer available.'
+            }), 400
+
+        order_type = 'dine_in'
+        table_number = table.table_number
+
+    else:
+        order_type = data.get(
+        'order_type',
+        'takeaway'
+    )
+
+    table_number = None
+
+    if order_type not in [
+        'takeaway',
+        'dine_in'
+    ]:
+        return jsonify({
+            'error': 'Invalid order type'
+        }), 400
 
     special_instructions = (
         data.get('special_instructions', '').strip() or None
@@ -306,7 +397,9 @@ def create_payment():
         'email': email,
         'whatsapp_number': whatsapp_clean,
         'order_type': order_type,
-        'special_instructions': special_instructions,
+'table_id': table_id,
+'table_number': table_number,
+'special_instructions': special_instructions,
         'cart_items': verified_items,
         'total_amount': total,
         'temp_order_id': temp_order_id,
@@ -397,6 +490,9 @@ def verify_payment():
 
                 session['active_orders'] = active_orders
                 session.pop('pending_order', None)
+                session.pop('table_id', None)
+                session.pop('table_number', None)
+                session.pop('order_type', None)
 
                 return jsonify({
                     'success': True,
@@ -425,6 +521,7 @@ def verify_payment():
     customer_id=customer.id,
     cafe_id=pending_order['cafe_id'],
     order_type=pending_order['order_type'],
+    table_number=pending_order.get('table_number'),
             status=OrderStatus.RECEIVED.value,
             total_amount=pending_order['total_amount'],
             special_instructions=pending_order.get('special_instructions'),
@@ -532,6 +629,9 @@ def verify_payment():
 
     # Clear pending checkout
     session.pop('pending_order', None)
+    session.pop('table_id', None)
+    session.pop('table_number', None)
+    session.pop('order_type', None)
 
     return jsonify({
         'success': True,
