@@ -259,6 +259,14 @@
         </li>
         <li>
           <a
+            href="{{ url_for('admin_routes.table_management') }}"
+            class="{{ 'active' if request.endpoint == 'admin_routes.table_management' else '' }}"
+          >
+            <span class="nav-icon">&#9632;</span> Tables
+          </a>
+        </li>
+        <li>
+          <a
             href="{{ url_for('admin_routes.history') }}"
             class="{{ 'active' if request.endpoint == 'admin_routes.history' else '' }}"
           >

@@ -12,6 +12,7 @@ from models.order import Order, OrderItem, OrderStatus, VALID_TRANSITIONS
 from models.payment import Payment, PaymentStatus
 from models.menu import MenuCategory, MenuItem
 from models.cafe_status import CafeStatus
+from models.table import CafeTable
 from services import order_service, payment_service, notification_service, invoice_service
 from functools import wraps
 
@@ -503,6 +504,140 @@ def delete_menu_item(item_id):
     db.session.delete(item)
     db.session.commit()
     return jsonify({'success': True})
+
+
+# ==========================================================
+# TABLE MANAGEMENT
+# ==========================================================
+
+@admin_bp.route('/tables')
+@admin_required
+def table_management():
+    cafe_id = get_admin_cafe_id()
+
+    tables = (
+        CafeTable.query
+        .filter_by(cafe_id=cafe_id)
+        .order_by(CafeTable.table_number.asc())
+        .all()
+    )
+
+    return render_template(
+        'admin/tables.html',
+        tables=tables
+    )
+
+
+@admin_bp.route('/api/tables', methods=['POST'])
+@admin_required
+def add_table():
+    data = request.get_json(silent=True) or request.form
+
+    table_raw = data.get('table_number')
+
+    try:
+        table_number = int(table_raw)
+    except (TypeError, ValueError):
+        return jsonify({
+            'error': 'Table number must be a valid number.'
+        }), 400
+
+    if table_number <= 0:
+        return jsonify({
+            'error': 'Table number must be greater than 0.'
+        }), 400
+
+    cafe_id = get_admin_cafe_id()
+
+    existing = (
+        CafeTable.query
+        .filter_by(
+            cafe_id=cafe_id,
+            table_number=table_number
+        )
+        .first()
+    )
+
+    if existing:
+        return jsonify({
+            'error': f'Table {table_number} already exists.'
+        }), 409
+
+    table = CafeTable(
+        cafe_id=cafe_id,
+        table_number=table_number,
+        is_active=True
+    )
+
+    db.session.add(table)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'table': table.to_dict()
+    }), 201
+
+
+@admin_bp.route('/api/tables/<int:table_id>', methods=['PATCH'])
+@admin_required
+def update_table(table_id):
+    cafe_id = get_admin_cafe_id()
+
+    table = (
+        CafeTable.query
+        .filter_by(
+            id=table_id,
+            cafe_id=cafe_id
+        )
+        .first_or_404()
+    )
+
+    data = request.get_json(silent=True) or request.form
+
+    if 'is_active' in data:
+        value = data.get('is_active')
+
+        if isinstance(value, str):
+            value = value.lower() in (
+                'true',
+                '1',
+                'yes',
+                'on'
+            )
+
+        table.is_active = bool(value)
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'table': table.to_dict()
+    })
+
+
+@admin_bp.route('/api/tables/<int:table_id>', methods=['DELETE'])
+@admin_required
+def delete_table(table_id):
+    cafe_id = get_admin_cafe_id()
+
+    table = (
+        CafeTable.query
+        .filter_by(
+            id=table_id,
+            cafe_id=cafe_id
+        )
+        .first_or_404()
+    )
+
+    table_number = table.table_number
+
+    db.session.delete(table)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': f'Table {table_number} deleted successfully.'
+    })
 
 
 @admin_bp.route('/history')
