@@ -312,5 +312,11 @@ endblock %} {% block extra_head %}
   </button>
 </div>
 
+<div
+  id="customer-context"
+  data-table-order="{{ 'true' if table_id else 'false' }}"
+  data-table-number="{{ table_number or '' }}"
+  hidden
+></div>
 <script src="/static/js/cart.js"></script>
 {% endblock %}

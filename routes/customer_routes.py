@@ -54,10 +54,11 @@ def home():
         'customer/home.html',
         daily_specials=daily_specials,
         categories=categories,
-        cafe_status=cafe_status_obj.status
+        cafe_status=cafe_status_obj.status,
+        table_number=session.get('table_number')
     )
     
-    @customer_bp.route('/table/<int:table_id>')
+@customer_bp.route('/table/<int:table_id>')
 def table_entry(table_id):
     """Enter the cafe ordering flow from a physical table QR code."""
 
@@ -96,19 +97,23 @@ def table_entry(table_id):
     session['order_type'] = 'dine_in'
 
     return redirect(
-        url_for('customer_routes.menu')
+        url_for('customer_routes.home')
     )
     
 @customer_bp.route('/order-type')
 def order_type():
     """Choose takeaway or dine-in."""
+
+    # Customers who entered through a table QR code
+    # must remain in the dine-in flow.
+    if session.get('table_id'):
+        return redirect(
+            url_for('customer_routes.menu')
+        )
+
     cafe = get_default_cafe()
 
     if not cafe:
-        if session.get('table_id'):
-            return redirect(
-                url_for('customer_routes.menu')
-    )
         return redirect(
             url_for('customer_routes.home')
         )
@@ -216,7 +221,12 @@ def api_menu_items():
 @customer_bp.route('/cart')
 def cart():
     """Show cart page."""
-    return render_template('customer/cart.html')
+
+    return render_template(
+        'customer/cart.html',
+        table_id=session.get('table_id'),
+        table_number=session.get('table_number')
+    )
 
 
 @customer_bp.route('/checkout')
@@ -311,11 +321,11 @@ def create_payment():
 
     else:
         order_type = data.get(
-        'order_type',
-        'takeaway'
-    )
+            'order_type',
+            'takeaway'
+        )
 
-    table_number = None
+        table_number = None
 
     if order_type not in [
         'takeaway',

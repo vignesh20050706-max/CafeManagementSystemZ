@@ -247,12 +247,18 @@
       return;
     }
 
+    var customerContext = document.getElementById("customer-context");
+    var isTableOrder =
+      customerContext && customerContext.dataset.tableOrder === "true";
+
+    if (isTableOrder) {
+      localStorage.setItem(ORDER_TYPE_KEY, "dine_in");
+      window.location.href = "/checkout";
+      return;
+    }
+
     var modalEl = document.getElementById("deliveryOptionsModal");
 
-    /*
-     * If Bootstrap's modal isn't available,
-     * preserve the existing checkout flow.
-     */
     if (!modalEl || !window.bootstrap || !bootstrap.Modal) {
       window.location.href = "/checkout";
       return;
