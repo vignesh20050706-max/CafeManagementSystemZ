@@ -94,18 +94,25 @@ def create_app(config_class=Config):
                     )
                 )
 
-        # Existing order migrations
+       # Existing order migrations
         add_column_if_missing(
-            'orders',
-            'rejection_reason',
-            'TEXT'
-        )
+    'orders',
+    'rejection_reason',
+    'TEXT'
+)
 
         add_column_if_missing(
+    'orders',
+    'refund_status',
+    'VARCHAR(30)'
+)
+
+# Phase 6 - Table QR ordering
+        add_column_if_missing(
             'orders',
-            'refund_status',
-            'VARCHAR(30)'
-        )
+            'table_number',
+            'INTEGER'
+)
 
         # Multi-cafe foundation
         add_column_if_missing(
