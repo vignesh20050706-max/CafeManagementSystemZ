@@ -638,6 +638,33 @@ def delete_table(table_id):
         'success': True,
         'message': f'Table {table_number} deleted successfully.'
     })
+    
+@admin_bp.route('/tables/<int:table_id>/qr')
+@admin_required
+def table_qr(table_id):
+    cafe_id = get_admin_cafe_id()
+
+    table = (
+        CafeTable.query
+        .filter_by(
+            id=table_id,
+            cafe_id=cafe_id
+        )
+        .first_or_404()
+    )
+
+    from services import qr_service
+
+    filepath = qr_service.generate_table_qr(table)
+
+    return send_file(
+        filepath,
+        mimetype='image/png',
+        as_attachment=False,
+        download_name=(
+            f'Table_{table.table_number}_QR.png'
+        )
+    )
 
 
 @admin_bp.route('/history')

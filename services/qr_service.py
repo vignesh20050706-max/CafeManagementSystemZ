@@ -32,3 +32,38 @@ def generate_cafe_qr():
     img = qrcode.make(url)
     img.save(filepath)
     return filepath
+
+def generate_table_qr(table):
+    """Generate a QR code for a specific cafe table."""
+    table_qr_dir = os.path.join(
+        QR_DIR,
+        'tables'
+    )
+
+    os.makedirs(
+        table_qr_dir,
+        exist_ok=True
+    )
+
+    filename = (
+        f'cafe_{table.cafe_id}_table_{table.table_number}.png'
+    )
+
+    filepath = os.path.join(
+        table_qr_dir,
+        filename
+    )
+
+    base_url = current_app.config.get(
+        'BASE_URL',
+        'http://localhost:5000'
+    ).rstrip('/')
+
+    table_url = (
+        f'{base_url}/table/{table.id}'
+    )
+
+    img = qrcode.make(table_url)
+    img.save(filepath)
+
+    return filepath

@@ -68,6 +68,14 @@ content %}
             </td>
 
             <td class="text-end">
+              <a
+                href="{{ url_for('admin_routes.table_qr', table_id=table.id) }}"
+                target="_blank"
+                class="btn btn-sm btn-outline-admin"
+              >
+                QR
+              </a>
+
               <button
                 type="button"
                 class="btn btn-sm btn-outline-secondary"
