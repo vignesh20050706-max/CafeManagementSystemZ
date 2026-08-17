@@ -6,3 +6,4 @@ from models.payment import Payment, PaymentStatus
 from models.notification import Notification
 from models.admin import Admin
 from models.cafe_status import CafeStatus
+from models.table import CafeTable

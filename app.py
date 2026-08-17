@@ -56,17 +56,18 @@ def create_app(config_class=Config):
         # Import all models before create_all() so SQLAlchemy knows
         # about every table and relationship.
         from models import (
-            Cafe,
-            Admin,
-            Customer,
-            MenuCategory,
-            MenuItem,
-            Order,
-            OrderItem,
-            Payment,
-            Notification,
-            CafeStatus,
-        )
+    Cafe,
+    Admin,
+    Customer,
+    MenuCategory,
+    MenuItem,
+    Order,
+    OrderItem,
+    Payment,
+    Notification,
+    CafeStatus,
+    CafeTable,
+)
 
         db.create_all()
 
