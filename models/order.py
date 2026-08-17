@@ -35,6 +35,7 @@ class Order(db.Model):
         index=True
     )
     order_type = db.Column(db.String(10), nullable=False)  # 'takeaway' or 'dine_in'
+    table_number = db.Column(db.Integer, nullable=True)
     status = db.Column(db.String(20), nullable=False, default=OrderStatus.RECEIVED.value)
     total_amount = db.Column(db.Float, nullable=False)
     special_instructions = db.Column(db.Text, nullable=True)
@@ -63,6 +64,7 @@ class Order(db.Model):
         return {
             'order_id': self.order_id,
             'order_type': self.order_type,
+            'table_number': self.table_number,
             'status': self.status,
             'total_amount': self.total_amount,
             'special_instructions': self.special_instructions,
