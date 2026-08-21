@@ -294,7 +294,6 @@ def create_payment():
         return jsonify({'error': 'WhatsApp number is required and must be 10 digits'}), 400
 
     table_id = session.get('table_id')
-    table_number = session.get('table_number')
 
     if table_id:
         table = (
@@ -316,16 +315,17 @@ def create_payment():
                 'error': 'The selected table is no longer available.'
             }), 400
 
+    # QR/table session is authoritative.
+    # Never trust order_type or table_number from the browser.
         order_type = 'dine_in'
         table_number = table.table_number
 
     else:
+    # Normal website customer.
         order_type = data.get(
-            'order_type',
-            'takeaway'
-        )
-
-        table_number = None
+        'order_type',
+        'takeaway'
+    )
 
     if order_type not in [
         'takeaway',
@@ -334,6 +334,8 @@ def create_payment():
         return jsonify({
             'error': 'Invalid order type'
         }), 400
+
+    table_number = None
 
     special_instructions = (
         data.get('special_instructions', '').strip() or None
