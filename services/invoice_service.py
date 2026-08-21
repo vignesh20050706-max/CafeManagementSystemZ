@@ -1,5 +1,5 @@
 import os
-
+from datetime import timezone, timedelta
 from flask import current_app
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT
@@ -8,6 +8,8 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfgen import canvas
+
+from models import order
 
 
 INVOICE_DIR = os.path.join(
@@ -220,12 +222,22 @@ def generate_invoice(order):
     )
 
     # Date
-    date_str = (
-        order.created_at.strftime(
-            "%d %b %Y, %I:%M %p"
+    date_str = ""
+
+    if order.created_at:
+        created_at = order.created_at
+
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(
+            tzinfo=timezone.utc
         )
-        if order.created_at
-        else ""
+
+    india_time = created_at.astimezone(
+        timezone(timedelta(hours=5, minutes=30))
+    )
+
+    date_str = india_time.strftime(
+        "%d %b %Y, %I:%M %p"
     )
 
     c.setFont(
