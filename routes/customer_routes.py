@@ -1,6 +1,7 @@
 import json
 import logging
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session, current_app
+from sqlalchemy import table
 from database.database import db
 from models.table import CafeTable
 from models.menu import MenuCategory, MenuItem
@@ -91,14 +92,23 @@ def table_entry(table_id):
             url_for('customer_routes.home')
         )
 
-    # Lock this customer's ordering session to this physical table.
+    # Reset any previous customer ordering state.
+    session.pop('order_type', None)
+    session.pop('table_id', None)
+    session.pop('table_number', None)
+    session.pop('pending_order', None)
+
+    # Lock this session to the scanned physical table.
     session['table_id'] = table.id
     session['table_number'] = table.table_number
     session['order_type'] = 'dine_in'
 
+    # Make sure Flask writes the updated session.
+    session.modified = True
+
     return redirect(
         url_for('customer_routes.home')
-    )
+)
     
 @customer_bp.route('/order-type')
 def order_type():
