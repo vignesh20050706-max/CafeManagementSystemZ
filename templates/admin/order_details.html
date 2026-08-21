@@ -87,9 +87,24 @@ endblock %} {% block content %}
               "
               >Order Type</span
             >
+
             <p class="mb-0 fw-600">
               {{ order.order_type|replace('_', ' ')|title }}
             </p>
+
+            {% if order.order_type == 'dine_in' and order.table_number %}
+            <span
+              class="text-muted mt-2"
+              style="
+                font-size: 0.8rem;
+                text-transform: uppercase;
+                letter-spacing: 0.4px;
+              "
+              >Table</span
+            >
+
+            <p class="mb-0 fw-600">Table {{ order.table_number }}</p>
+            {% endif %}
           </div>
           <div class="col-sm-6">
             <span

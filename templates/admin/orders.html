@@ -1,87 +1,126 @@
-{% extends "admin/base.html" %}
-{% block title %}Orders{% endblock %}
-
-{% block content %}
+{% extends "admin/base.html" %} {% block title %}Orders{% endblock %} {% block
+content %}
 <!-- Status Filter Tabs -->
 <div class="mb-4">
-    <ul class="nav nav-pills">
-        <li class="nav-item">
-            <a class="nav-link {{ 'active' if current_filter == 'all' or not current_filter else '' }}"
-               href="{{ url_for('admin_routes.orders') }}">All</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {{ 'active' if current_filter == 'received' else '' }}"
-               href="{{ url_for('admin_routes.orders', status='received') }}">Received</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {{ 'active' if current_filter == 'accepted' else '' }}"
-               href="{{ url_for('admin_routes.orders', status='accepted') }}">Accepted</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {{ 'active' if current_filter == 'preparing' else '' }}"
-               href="{{ url_for('admin_routes.orders', status='preparing') }}">Preparing</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {{ 'active' if current_filter == 'ready' else '' }}"
-               href="{{ url_for('admin_routes.orders', status='ready') }}">Ready</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {{ 'active' if current_filter == 'delivered' else '' }}"
-               href="{{ url_for('admin_routes.orders', status='delivered') }}">Delivered</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {{ 'active' if current_filter == 'rejected' else '' }}"
-               href="{{ url_for('admin_routes.orders', status='rejected') }}">Rejected</a>
-        </li>
-    </ul>
+  <ul class="nav nav-pills">
+    <li class="nav-item">
+      <a
+        class="nav-link {{ 'active' if current_filter == 'all' or not current_filter else '' }}"
+        href="{{ url_for('admin_routes.orders') }}"
+        >All</a
+      >
+    </li>
+    <li class="nav-item">
+      <a
+        class="nav-link {{ 'active' if current_filter == 'received' else '' }}"
+        href="{{ url_for('admin_routes.orders', status='received') }}"
+        >Received</a
+      >
+    </li>
+    <li class="nav-item">
+      <a
+        class="nav-link {{ 'active' if current_filter == 'accepted' else '' }}"
+        href="{{ url_for('admin_routes.orders', status='accepted') }}"
+        >Accepted</a
+      >
+    </li>
+    <li class="nav-item">
+      <a
+        class="nav-link {{ 'active' if current_filter == 'preparing' else '' }}"
+        href="{{ url_for('admin_routes.orders', status='preparing') }}"
+        >Preparing</a
+      >
+    </li>
+    <li class="nav-item">
+      <a
+        class="nav-link {{ 'active' if current_filter == 'ready' else '' }}"
+        href="{{ url_for('admin_routes.orders', status='ready') }}"
+        >Ready</a
+      >
+    </li>
+    <li class="nav-item">
+      <a
+        class="nav-link {{ 'active' if current_filter == 'delivered' else '' }}"
+        href="{{ url_for('admin_routes.orders', status='delivered') }}"
+        >Delivered</a
+      >
+    </li>
+    <li class="nav-item">
+      <a
+        class="nav-link {{ 'active' if current_filter == 'rejected' else '' }}"
+        href="{{ url_for('admin_routes.orders', status='rejected') }}"
+        >Rejected</a
+      >
+    </li>
+  </ul>
 </div>
 
 <!-- Orders Table -->
 <div class="card border-0 shadow-sm">
-    <div class="card-body p-0">
-        {% if orders and orders|length > 0 %}
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>Order ID</th>
-                        <th>Customer</th>
-                        <th>Mobile</th>
-                        <th>Type</th>
-                        <th>Items</th>
-                        <th>Total</th>
-                        <th>Status</th>
-                        <th>Time</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for order in orders %}
-                    <tr>
-                        <td><strong>#{{ order.order_id }}</strong></td>
-                        <td>{{ order.customer.name }}</td>
-                        <td>****{{ order.customer.mobile[-4:] }}</td>
-                        <td>{{ order.order_type|replace('_', ' ')|title }}</td>
-                        <td>{{ order.items|length }}</td>
-                        <td><strong>Rs.{{ format_currency(order.total_amount) }}</strong></td>
-                        <td>
-                            <span class="badge bg-{{ status_color(order.status) }}">{{ status_label(order.status) }}</span>
-                        </td>
-                        <td class="text-muted" style="font-size:0.85rem;">{{ time_ago(order.created_at) }}</td>
-                        <td>
-                            <a href="{{ url_for('admin_routes.order_detail', order_db_id=order.id) }}" class="btn btn-sm btn-outline-secondary">View</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="text-center text-muted py-5">
-            <p style="font-size:2rem; opacity:0.3; margin-bottom:8px;">&#128203;</p>
-            <p class="mb-0">No orders found{% if current_filter %} with status "{{ status_label(current_filter) }}"{% endif %}</p>
-        </div>
-        {% endif %}
+  <div class="card-body p-0">
+    {% if orders and orders|length > 0 %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Customer</th>
+            <th>Mobile</th>
+            <th>Type</th>
+            <th>Table</th>
+            <th>Items</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th>Time</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in orders %}
+          <tr>
+            <td><strong>#{{ order.order_id }}</strong></td>
+            <td>{{ order.customer.name }}</td>
+            <td>****{{ order.customer.mobile[-4:] }}</td>
+            <td>{{ order.order_type|replace('_', ' ')|title }}</td>
+
+            <td>
+              {% if order.order_type == 'dine_in' and order.table_number %}
+              Table {{ order.table_number }} {% else %} — {% endif %}
+            </td>
+
+            <td>{{ order.items|length }}</td>
+            <td>
+              <strong>Rs.{{ format_currency(order.total_amount) }}</strong>
+            </td>
+            <td>
+              <span class="badge bg-{{ status_color(order.status) }}"
+                >{{ status_label(order.status) }}</span
+              >
+            </td>
+            <td class="text-muted" style="font-size: 0.85rem">
+              {{ time_ago(order.created_at) }}
+            </td>
+            <td>
+              <a
+                href="{{ url_for('admin_routes.order_detail', order_db_id=order.id) }}"
+                class="btn btn-sm btn-outline-secondary"
+                >View</a
+              >
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+    {% else %}
+    <div class="text-center text-muted py-5">
+      <p style="font-size: 2rem; opacity: 0.3; margin-bottom: 8px">&#128203;</p>
+      <p class="mb-0">
+        No orders found{% if current_filter %} with status "{{
+        status_label(current_filter) }}"{% endif %}
+      </p>
+    </div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

@@ -222,6 +222,7 @@ endblock %} {% block extra_head %}
   <a href="/menu" class="btn btn-primary px-4 py-2">Browse Menu</a>
 </div>
 
+{% if not table_id %}
 <div
   class="modal fade"
   id="deliveryOptionsModal"
@@ -303,7 +304,7 @@ endblock %} {% block extra_head %}
     </div>
   </div>
 </div>
-
+{% endif %}
 <div class="cart-bottom-bar" id="cart-bottom-bar" style="display: none">
   <button type="button" class="cart-bottom-action" id="proceed-order-btn">
     <span class="cart-bottom-count" id="cart-bottom-count">0 items</span>
