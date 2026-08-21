@@ -137,6 +137,19 @@ block topbar_extra %}
     </div>
   </div>
 </div>
+<!-- 7-Day Sales -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Sales — Last 7 Days</span>
+    <span class="text-muted" style="font-size: 0.8rem"> Revenue </span>
+  </div>
+
+  <div class="card-body">
+    <div style="height: 300px">
+      <canvas id="salesChart"></canvas>
+    </div>
+  </div>
+</div>
 
 <!-- Active Orders -->
 <div class="card border-0 shadow-sm">
@@ -210,6 +223,68 @@ block topbar_extra %}
   </div>
 </div>
 {% endblock %} {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const salesData = {{ seven_day_sales|tojson }};
+
+  const salesLabels = salesData.map(function (item) {
+    const date = new Date(item.date + "T00:00:00");
+
+    return date.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short"
+    });
+  });
+
+  const salesValues = salesData.map(function (item) {
+    return item.revenue;
+  });
+
+  const salesChartElement = document.getElementById("salesChart");
+
+  if (salesChartElement) {
+    new Chart(salesChartElement, {
+      type: "bar",
+      data: {
+        labels: salesLabels,
+        datasets: [
+          {
+            label: "Revenue (Rs.)",
+            data: salesValues,
+            borderWidth: 1,
+            borderRadius: 6,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false,
+          },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                return "Rs." + Number(context.raw).toFixed(2);
+              },
+            },
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function (value) {
+                return "Rs." + value;
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+</script>
 <script>
   // Cafe status management
   function setCafeStatus(status) {

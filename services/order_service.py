@@ -169,6 +169,64 @@ def get_today_revenue(cafe_id=None):
     )
 
 
+def get_last_7_days_revenue(cafe_id=None):
+    """Get revenue for each of the last 7 days for a cafe."""
+    today = datetime.now(timezone.utc).date()
+    start_date = today - timedelta(days=6)
+
+    start_datetime = datetime.combine(
+        start_date,
+        datetime.min.time(),
+        tzinfo=timezone.utc
+    )
+
+    end_datetime = datetime.combine(
+        today + timedelta(days=1),
+        datetime.min.time(),
+        tzinfo=timezone.utc
+    )
+
+    query = Order.query.filter(
+        Order.created_at >= start_datetime,
+        Order.created_at < end_datetime,
+        Order.status.notin_([
+            OrderStatus.REJECTED.value
+        ]),
+    )
+
+    if cafe_id is not None:
+        query = query.filter(
+            Order.cafe_id == cafe_id
+        )
+
+    orders = query.all()
+
+    revenue_by_date = {}
+
+    for offset in range(7):
+        current_date = start_date + timedelta(days=offset)
+        revenue_by_date[current_date.isoformat()] = 0.0
+
+    for order in orders:
+        if not order.created_at:
+            continue
+
+        order_date = order.created_at.date().isoformat()
+
+        if order_date in revenue_by_date:
+            revenue_by_date[order_date] += float(
+                order.total_amount or 0
+            )
+
+    return [
+        {
+            'date': date,
+            'revenue': round(revenue, 2)
+        }
+        for date, revenue in revenue_by_date.items()
+    ]
+
+
 def search_orders(query, cafe_id=None):
     """Search orders by order_id, customer name, or mobile."""
     q = f'%{query}%'

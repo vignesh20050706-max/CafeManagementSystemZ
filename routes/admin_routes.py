@@ -106,6 +106,10 @@ def dashboard():
         cafe_id=cafe_id
     )
 
+    seven_day_sales = order_service.get_last_7_days_revenue(
+        cafe_id=cafe_id
+    )
+
     active_orders = order_service.get_active_orders(
         cafe_id=cafe_id
     )
@@ -114,13 +118,16 @@ def dashboard():
     preparing_count = len([o for o in active_orders if o.status == 'preparing'])
     ready_count = len([o for o in active_orders if o.status == 'ready'])
 
-    return render_template('admin/dashboard.html',
-                           today_orders=len(today_orders),
-                           today_revenue=today_revenue,
-                           new_count=new_count,
-                           preparing_count=preparing_count,
-                           ready_count=ready_count,
-                           active_orders=active_orders)
+    return render_template(
+        'admin/dashboard.html',
+        today_orders=len(today_orders),
+        today_revenue=today_revenue,
+        new_count=new_count,
+        preparing_count=preparing_count,
+        ready_count=ready_count,
+        active_orders=active_orders,
+        seven_day_sales=seven_day_sales
+    )
 
 
 @admin_bp.route('/orders')
