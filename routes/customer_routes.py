@@ -99,11 +99,12 @@ def table_entry(table_id):
     session.pop('pending_order', None)
 
     # Lock this session to the scanned physical table.
+    session.permanent = True
     session['table_id'] = table.id
     session['table_number'] = table.table_number
     session['order_type'] = 'dine_in'
 
-    # Make sure Flask writes the updated session.
+# Make sure Flask writes the updated session.
     session.modified = True
 
     return redirect(

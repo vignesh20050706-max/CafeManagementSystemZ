@@ -7,6 +7,14 @@ load_dotenv(Path(__file__).parent / '.env')
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+        # Customer ordering session
+    SESSION_COOKIE_NAME = 'cafe_session'
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SECURE = False
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_PATH = '/'
+    PERMANENT_SESSION_LIFETIME = 86400
+    SESSION_REFRESH_EACH_REQUEST = True
     _db_path = Path(__file__).parent / 'cafe.db'
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         'CAFE_DATABASE_URL', f'sqlite:///{_db_path}'
