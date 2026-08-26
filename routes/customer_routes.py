@@ -1,6 +1,17 @@
 import json
 import logging
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session, current_app
+from urllib import response
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    jsonify,
+    redirect,
+    url_for,
+    session,
+    current_app,
+    make_response,
+)
 from sqlalchemy import table
 from database.database import db
 from models.table import CafeTable
@@ -231,13 +242,23 @@ def api_menu_items():
 
 @customer_bp.route('/cart')
 def cart():
-    """Show cart page."""
+    """Show cart page without allowing stale customer state."""
 
-    return render_template(
-        'customer/cart.html',
-        table_id=session.get('table_id'),
-        table_number=session.get('table_number')
+    response = make_response(
+        render_template(
+            'customer/cart.html',
+            table_id=session.get('table_id'),
+            table_number=session.get('table_number')
+        )
     )
+
+    response.headers['Cache-Control'] = (
+        'no-store, no-cache, must-revalidate, max-age=0'
+    )
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+
+    return response
 
 
 @customer_bp.route('/checkout')
@@ -252,11 +273,21 @@ def checkout():
         return redirect(url_for('customer_routes.home'))
     table_number = session.get('table_number')
 
-    return render_template(
-        'customer/checkout.html',
-        cafe_status=cafe_status_obj.status,
-        table_number=table_number
-)
+    response = make_response(
+        render_template(
+            'customer/checkout.html',
+            cafe_status=cafe_status_obj.status,
+            table_number=table_number
+        )
+    )
+
+    response.headers['Cache-Control'] = (
+        'no-store, no-cache, must-revalidate, max-age=0'
+    )
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+
+    return response
 
 
 @customer_bp.route('/api/payment/create', methods=['POST'])
