@@ -114,6 +114,20 @@ def table_entry(table_id):
             url_for('customer_routes.home')
         )
 
+        response.headers['Cache-Control'] = (
+            'no-store, no-cache, must-revalidate, max-age=0'
+        )
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+
+        return response
+
+    cafe_status_obj = CafeStatus.get(cafe.id)
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+
+    return response
+
     cafe_status_obj = CafeStatus.get(cafe.id)
 
     if cafe_status_obj.status != 'open':
@@ -133,12 +147,20 @@ def table_entry(table_id):
     session['table_number'] = table.table_number
     session['order_type'] = 'dine_in'
 
-# Make sure Flask writes the updated session.
+    # Make sure Flask writes the updated session.
     session.modified = True
 
-    return redirect(
+    response = redirect(
         url_for('customer_routes.home')
-)
+    )
+
+    response.headers['Cache-Control'] = (
+        'no-store, no-cache, must-revalidate, max-age=0'
+    )
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+
+    return response
     
 @customer_bp.route('/order-type')
 def order_type():
