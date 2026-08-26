@@ -339,34 +339,34 @@ def create_payment():
 
     if table_id:
         table = (
-        CafeTable.query
-        .filter_by(
-            id=table_id,
-            cafe_id=cafe.id,
-            is_active=True
+            CafeTable.query
+            .filter_by(
+                id=table_id,
+                cafe_id=cafe.id,
+                is_active=True
+            )
+            .first()
         )
-        .first()
-    )
 
-    if not table:
-        session.pop('table_id', None)
-        session.pop('table_number', None)
-        session.pop('order_type', None)
+        if not table:
+            session.pop('table_id', None)
+            session.pop('table_number', None)
+            session.pop('order_type', None)
 
-        return jsonify({
-            'error': 'The selected table is no longer available.'
-        }), 400
+            return jsonify({
+                'error': 'The selected table is no longer available.'
+            }), 400
 
-    # QR orders are always server-controlled dine-in orders.
+        # QR orders are always server-controlled dine-in orders.
         order_type = 'dine_in'
         table_number = table.table_number
 
     else:
-    # Normal website customer.
+        # Normal website customer.
         order_type = data.get(
-        'order_type',
-        'takeaway'
-    )
+            'order_type',
+            'takeaway'
+        )
 
     if order_type not in [
         'takeaway',
