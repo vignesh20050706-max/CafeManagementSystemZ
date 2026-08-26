@@ -62,13 +62,23 @@ def home():
 
     cafe_status_obj = CafeStatus.get(cafe.id)
 
-    return render_template(
-        'customer/home.html',
-        daily_specials=daily_specials,
-        categories=categories,
-        cafe_status=cafe_status_obj.status,
-        table_number=session.get('table_number')
+    response = make_response(
+        render_template(
+            'customer/home.html',
+            daily_specials=daily_specials,
+            categories=categories,
+            cafe_status=cafe_status_obj.status,
+            table_number=session.get('table_number')
+        )
     )
+
+    response.headers['Cache-Control'] = (
+        'no-store, no-cache, must-revalidate, max-age=0'
+    )
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+
+    return response
     
 @customer_bp.route('/table/<int:table_id>')
 def table_entry(table_id):
@@ -77,9 +87,17 @@ def table_entry(table_id):
     cafe = get_default_cafe()
 
     if not cafe:
-        return redirect(
+        response = redirect(
             url_for('customer_routes.home')
         )
+
+        response.headers['Cache-Control'] = (
+            'no-store, no-cache, must-revalidate, max-age=0'
+        )
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+
+        return response
 
     table = (
         CafeTable.query
@@ -92,7 +110,7 @@ def table_entry(table_id):
     )
 
     if not table:
-        return redirect(
+        response = redirect(
             url_for('customer_routes.home')
         )
 
