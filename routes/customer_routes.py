@@ -278,7 +278,42 @@ def api_menu_items():
 def cart():
     """Show cart page without allowing stale customer state."""
 
-    table_id = session.get('table_id')
+    table_id = request.args.get('table_id', type=int)
+
+    if table_id:
+        cafe = get_default_cafe()
+
+        table = None
+
+        if cafe:
+            table = (
+                CafeTable.query
+                .filter_by(
+                    id=table_id,
+                    cafe_id=cafe.id,
+                    is_active=True
+                )
+                .first()
+            )
+
+        if table:
+            # QR/table context is server-controlled.
+            session.permanent = True
+            session['table_id'] = table.id
+            session['table_number'] = table.table_number
+            session['order_type'] = 'dine_in'
+            session.modified = True
+
+        else:
+            # Invalid table ID must never become a table order.
+            table_id = None
+            session.pop('table_id', None)
+            session.pop('table_number', None)
+            session.pop('order_type', None)
+
+    else:
+        table_id = session.get('table_id')
+
     table_number = session.get('table_number')
     order_type = session.get('order_type')
 
