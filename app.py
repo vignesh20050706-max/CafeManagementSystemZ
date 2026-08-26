@@ -121,6 +121,12 @@ def create_app(config_class=Config):
             'cafe_id',
             'INTEGER'
         )
+        
+        add_column_if_missing(
+            'admins',
+            'role',
+            "VARCHAR(20) DEFAULT 'cafe_admin'"
+        )
 
         add_column_if_missing(
             'customers',

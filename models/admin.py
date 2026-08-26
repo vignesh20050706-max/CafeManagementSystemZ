@@ -13,6 +13,12 @@ class Admin(db.Model):
         nullable=True,
         index=True
     )
+    
+    role = db.Column(
+    db.String(20),
+    nullable=False,
+    default='cafe_admin'
+    )
 
     username = db.Column(
         db.String(100),
