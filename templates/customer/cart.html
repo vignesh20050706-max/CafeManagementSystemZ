@@ -222,7 +222,7 @@ endblock %} {% block extra_head %}
   <a href="/menu" class="btn btn-primary px-4 py-2">Browse Menu</a>
 </div>
 
-{% if not table_id %}
+{% if not is_table_order %}
 <div
   class="modal fade"
   id="deliveryOptionsModal"
@@ -315,7 +315,7 @@ endblock %} {% block extra_head %}
 
 <div
   id="customer-context"
-  data-table-order="{{ 'true' if table_id else 'false' }}"
+  data-table-order="{{ 'true' if is_table_order else 'false' }}"
   data-table-number="{{ table_number or '' }}"
   hidden
 ></div>

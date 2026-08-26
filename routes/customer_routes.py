@@ -280,18 +280,19 @@ def cart():
 
     table_id = session.get('table_id')
     table_number = session.get('table_number')
+    order_type = session.get('order_type')
 
-    # If the QR table number exists, this is a table order.
     is_table_order = (
         table_id is not None
-        and table_number is not None
+        and order_type == 'dine_in'
     )
 
     response = make_response(
         render_template(
             'customer/cart.html',
             table_id=table_id if is_table_order else None,
-            table_number=table_number if is_table_order else None
+            table_number=table_number if is_table_order else None,
+            is_table_order=is_table_order
         )
     )
 
