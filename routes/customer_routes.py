@@ -244,11 +244,20 @@ def api_menu_items():
 def cart():
     """Show cart page without allowing stale customer state."""
 
+    table_id = session.get('table_id')
+    table_number = session.get('table_number')
+
+    # If the QR table number exists, this is a table order.
+    is_table_order = (
+        table_id is not None
+        and table_number is not None
+    )
+
     response = make_response(
         render_template(
             'customer/cart.html',
-            table_id=session.get('table_id'),
-            table_number=session.get('table_number')
+            table_id=table_id if is_table_order else None,
+            table_number=table_number if is_table_order else None
         )
     )
 
@@ -348,30 +357,30 @@ def create_payment():
             .first()
         )
 
-        if not table:
-            session.pop('table_id', None)
-            session.pop('table_number', None)
-            session.pop('order_type', None)
+    if not table:
+        session.pop('table_id', None)
+        session.pop('table_number', None)
+        session.pop('order_type', None)
 
-            return jsonify({
-                'error': 'The selected table is no longer available.'
-            }), 400
+        return jsonify({
+            'error': 'The selected table is no longer available.'
+        }), 400
 
-        # QR orders are always server-controlled dine-in orders.
+    # QR/table order: server is authoritative.
         order_type = 'dine_in'
         table_number = table.table_number
 
     else:
-        # Normal website customer.
+    # Normal website order.
         order_type = data.get(
-            'order_type',
-            'takeaway'
-        )
+        'order_type',
+        'takeaway'
+    )
 
-    if order_type not in [
-        'takeaway',
-        'dine_in'
-    ]:
+    if order_type not in (
+        'dine_in',
+        'takeaway'
+    ):
         return jsonify({
             'error': 'Invalid order type'
         }), 400
