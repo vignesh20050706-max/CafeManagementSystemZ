@@ -123,12 +123,6 @@ def table_entry(table_id):
         return response
 
     cafe_status_obj = CafeStatus.get(cafe.id)
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-
-    return response
-
-    cafe_status_obj = CafeStatus.get(cafe.id)
 
     if cafe_status_obj.status != 'open':
         return redirect(
