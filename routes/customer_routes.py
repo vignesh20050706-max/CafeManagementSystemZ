@@ -28,6 +28,17 @@ logger = logging.getLogger(__name__)
 
 customer_bp = Blueprint('customer_routes', __name__)
 
+def customer_order_authorized(order_id):
+    """Return the order only when it belongs to this customer's session."""
+    active_order_ids = session.get('active_orders', [])
+
+    if not isinstance(active_order_ids, list):
+        return None
+
+    if order_id not in active_order_ids:
+        return None
+
+    return order_service.get_order_by_public_id(order_id)
 
 @customer_bp.route('/')
 def home():
@@ -773,11 +784,20 @@ def verify_payment():
 
 @customer_bp.route('/track/<order_id>')
 def track_order(order_id):
-    """Track a specific order."""
-    order = order_service.get_order_by_public_id(order_id)
+    """Track a specific order belonging to this customer session."""
+    order = customer_order_authorized(order_id)
+
     if not order:
-        return render_template('customer/tracking.html', order=None, error='Order not found')
-    return render_template('customer/tracking.html', order=order)
+        return render_template(
+            'customer/tracking.html',
+            order=None,
+            error='Order not found'
+        )
+
+    return render_template(
+        'customer/tracking.html',
+        order=order
+    )
 
 
 @customer_bp.route('/orders')
@@ -794,11 +814,13 @@ def active_orders():
 
 @customer_bp.route('/api/orders/<order_id>')
 def api_order_detail(order_id):
-    """Return order details as JSON."""
-    order = order_service.get_order_by_public_id(order_id)
+    """Return order details only for an order owned by this customer session."""
+    order = customer_order_authorized(order_id)
+
     if not order:
         return jsonify({'error': 'Order not found'}), 404
-    return jsonify(order.to_dict())
+
+    return jsonify(order.to_dict)
 
 
 @customer_bp.route('/api/cafe-status')
@@ -822,9 +844,11 @@ def payment_callback():
 
 @customer_bp.route('/invoice/<order_id>')
 def download_invoice(order_id):
-    """Download invoice PDF."""
+    """Download invoice only for an order owned by this customer session."""
     from flask import send_file
-    order = order_service.get_order_by_public_id(order_id)
+
+    order = customer_order_authorized(order_id)
+
     if not order:
         return 'Order not found', 404
 
