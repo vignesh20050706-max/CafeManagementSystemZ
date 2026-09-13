@@ -37,6 +37,18 @@ def seed():
         admin.set_password('admin123')
         db.session.add(admin)
         print('Created admin account: admin / admin123')
+        
+    # Super Admin
+    if not Admin.query.filter_by(username='superadmin').first():
+        super_admin = Admin(
+            cafe_id=None,
+            username='superadmin',
+            role='super_admin',
+            created_at=datetime.now(timezone.utc)
+        )
+        super_admin.set_password('superadmin123')
+        db.session.add(super_admin)
+        print('Created super admin account: superadmin / superadmin123')
 
     # Cafe status
     if not CafeStatus.query.first():
