@@ -36,7 +36,20 @@ def admin_required(f):
     def decorated(*args, **kwargs):
         if 'admin_id' not in session:
             return redirect(url_for('admin_routes.login'))
+
+        admin = Admin.query.get(session['admin_id'])
+
+        if not admin:
+            session.clear()
+            return redirect(url_for('admin_routes.login'))
+
+        if admin.role == 'super_admin':
+            return redirect(
+                url_for('super_admin_routes.dashboard')
+            )
+
         return f(*args, **kwargs)
+
     return decorated
 
 def super_admin_required(f):
@@ -71,6 +84,11 @@ def login():
             session['admin_cafe_id'] = admin.cafe_id
             session['admin_role'] = admin.role
 
+            if admin.role == 'super_admin':
+                return redirect(
+                    url_for('super_admin_routes.dashboard')
+                )
+
             return redirect(
                 url_for('admin_routes.dashboard')
             )
@@ -81,6 +99,11 @@ def login():
         )
 
     if 'admin_id' in session:
+        if session.get('admin_role') == 'super_admin':
+            return redirect(
+                url_for('super_admin_routes.dashboard')
+            )
+
         return redirect(
             url_for('admin_routes.dashboard')
         )
