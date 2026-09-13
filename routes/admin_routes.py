@@ -48,6 +48,10 @@ def admin_required(f):
                 url_for('super_admin_routes.dashboard')
             )
 
+        if admin.cafe_id is None:
+            session.clear()
+            return redirect(url_for('admin_routes.login'))
+
         return f(*args, **kwargs)
 
     return decorated
@@ -115,12 +119,17 @@ def login():
 
 def get_admin_cafe_id():
     """Return the cafe assigned to the logged-in admin."""
-    cafe_id = session.get('admin_cafe_id')
+    admin_id = session.get('admin_id')
 
-    if cafe_id is None:
+    if admin_id is None:
         return None
 
-    return int(cafe_id)
+    admin = Admin.query.get(admin_id)
+
+    if not admin:
+        return None
+
+    return admin.cafe_id
 
 
 @admin_bp.route('/logout')
