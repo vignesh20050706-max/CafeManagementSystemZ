@@ -1,0 +1,71 @@
+{% extends "admin/base.html" %} {% block title %}Super Admin{% endblock %} {%
+block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Super Admin Dashboard</h2>
+    <p class="text-muted mb-0">Manage and monitor all cafes</p>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Cafes</span>
+    <span class="badge bg-secondary"> {{ cafes|length }} Total </span>
+  </div>
+
+  <div class="card-body p-0">
+    {% if cafes %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Cafe</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th>Status</th>
+            <th>Admins</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for cafe in cafes %}
+          <tr>
+            <td>{{ cafe.id }}</td>
+
+            <td>
+              <strong>{{ cafe.name }}</strong>
+            </td>
+
+            <td>{{ cafe.phone or '—' }}</td>
+
+            <td>{{ cafe.address or '—' }}</td>
+
+            <td>
+              {% if cafe.status == 'active' %}
+              <span class="badge bg-success"> Active </span>
+              {% else %}
+              <span class="badge bg-danger">
+                {{ cafe.status|capitalize }}
+              </span>
+              {% endif %}
+            </td>
+
+            <td>{{ cafe.admins|length }}</td>
+
+            <td>
+              {% if cafe.created_at %} {{ cafe.created_at.strftime('%d %b %Y')
+              }} {% else %} — {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-4 text-center text-muted">No cafes found.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

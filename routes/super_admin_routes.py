@@ -38,5 +38,6 @@ def dashboard():
 
     return render_template(
         'super_admin/dashboard.html',
-        cafes=cafes
+        cafes=cafes,
+        cafe_name='Super Admin'
     )
