@@ -51,7 +51,15 @@ def create_order(customer_name, customer_mobile, order_type, cart_items, total_a
     db.session.flush()
 
     for item in cart_items:
-        menu_item = MenuItem.query.get(item['menu_item_id'])
+        menu_item = (
+            MenuItem.query
+            .filter_by(
+                id=item['menu_item_id'],
+                cafe_id=cafe_id
+            )
+            .first()
+        )
+
         if not menu_item:
             continue
         order_item = OrderItem(
