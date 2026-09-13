@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, redirect, url_for
+from flask import Flask, app, redirect, url_for
 from sqlalchemy import inspect, text
 from config import Config
 from database.database import db
@@ -21,10 +21,11 @@ def create_app(config_class=Config):
     # Register routes
     from routes.customer_routes import customer_bp
     from routes.admin_routes import admin_bp
+    from routes.super_admin_routes import super_admin_bp
 
     app.register_blueprint(customer_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
-
+    app.register_blueprint(super_admin_bp, url_prefix='/super-admin')
     # Context processors
     @app.context_processor
     def inject_helpers():
