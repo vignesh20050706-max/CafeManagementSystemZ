@@ -1,0 +1,354 @@
+{% extends "admin/base.html" %} {% block content %}
+
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div
+    class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4"
+  >
+    <div>
+      <div class="text-muted small text-uppercase fw-semibold">
+        Cafe Management
+      </div>
+
+      <h1 class="h3 fw-bold mb-1">{{ cafe.name }}</h1>
+
+      <p class="text-muted mb-0">
+        Platform management and operational controls.
+      </p>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a
+        href="{{ url_for('super_admin_routes.edit_cafe', cafe_id=cafe.id) }}"
+        class="btn btn-outline-primary"
+      >
+        <i class="bi bi-pencil me-1"></i>
+        Edit Cafe
+      </a>
+
+      <a
+        href="{{ url_for('super_admin_routes.dashboard') }}"
+        class="btn btn-outline-secondary"
+      >
+        <i class="bi bi-arrow-left me-1"></i>
+        Back
+      </a>
+    </div>
+  </div>
+
+  <!-- Status Banner -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+      <div
+        class="d-flex flex-wrap justify-content-between align-items-center gap-3"
+      >
+        <div class="d-flex align-items-center gap-3">
+          <div class="fs-2">
+            <i class="bi bi-shop"></i>
+          </div>
+
+          <div>
+            <div class="small text-muted">Platform Status</div>
+
+            <div class="fw-bold fs-5">
+              {% if cafe.status == 'active' %} Operational {% elif cafe.status
+              == 'on_hold' %} On Hold {% elif cafe.status == 'inactive' %}
+              Deactivated {% else %} {{ cafe.status|replace('_', ' ')|title }}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          {% if cafe.status == 'active' %}
+
+          <span
+            class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2"
+          >
+            Active
+          </span>
+
+          {% elif cafe.status == 'on_hold' %}
+
+          <span
+            class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2"
+          >
+            On Hold
+          </span>
+
+          {% elif cafe.status == 'inactive' %}
+
+          <span
+            class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2"
+          >
+            Deactivated
+          </span>
+
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overview -->
+  <div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Cafe ID</div>
+
+          <div class="fs-4 fw-bold mt-1">#{{ cafe.id }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Cafe Admins</div>
+
+          <div class="fs-4 fw-bold mt-1">{{ admin_count }}</div>
+
+          <div class="small text-muted">Assigned administrators</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Customers</div>
+
+          <div class="fs-4 fw-bold mt-1">{{ customer_count }}</div>
+
+          <div class="small text-muted">Registered customers</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Created</div>
+
+          <div class="fs-5 fw-bold mt-2">
+            {% if cafe.created_at %} {{ cafe.created_at.strftime('%d %b %Y') }}
+            {% else %} — {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Cafe Information -->
+    <div class="col-xl-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-0 py-3">
+          <h2 class="h5 fw-bold mb-0">Cafe Information</h2>
+        </div>
+
+        <div class="card-body">
+          <div class="mb-4">
+            <div class="small text-muted">Cafe Name</div>
+
+            <div class="fw-semibold mt-1">{{ cafe.name }}</div>
+          </div>
+
+          <div class="mb-4">
+            <div class="small text-muted">Phone</div>
+
+            <div class="fw-semibold mt-1">
+              {{ cafe.phone or 'Not provided' }}
+            </div>
+          </div>
+
+          <div>
+            <div class="small text-muted">Address</div>
+
+            <div class="fw-semibold mt-1">
+              {{ cafe.address or 'Not provided' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Maintenance -->
+    <div class="col-xl-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-0 py-3">
+          <h2 class="h5 fw-bold mb-0">Maintenance</h2>
+        </div>
+
+        <div class="card-body">
+          <div class="d-flex justify-content-between mb-3">
+            <span class="text-muted"> Amount </span>
+
+            <strong>
+              ₹{{ '%.2f'|format(cafe.maintenance_amount or 0) }}
+            </strong>
+          </div>
+
+          <div class="d-flex justify-content-between mb-3">
+            <span class="text-muted"> Payment Status </span>
+
+            {% if cafe.maintenance_paid %}
+
+            <span
+              class="badge bg-success-subtle text-success border border-success-subtle"
+            >
+              Paid
+            </span>
+
+            {% else %}
+
+            <span
+              class="badge bg-warning-subtle text-warning border border-warning-subtle"
+            >
+              Pending
+            </span>
+
+            {% endif %}
+          </div>
+
+          <div class="d-flex justify-content-between mb-3">
+            <span class="text-muted"> Due Date </span>
+
+            <strong>
+              {% if cafe.maintenance_due_date %} {{
+              cafe.maintenance_due_date.strftime('%d %b %Y') }} {% else %} Not
+              set {% endif %}
+            </strong>
+          </div>
+
+          <div class="d-flex justify-content-between">
+            <span class="text-muted"> Grace Period Ends </span>
+
+            <strong>
+              {% if cafe.grace_period_end %} {{
+              cafe.grace_period_end.strftime('%d %b %Y') }} {% else %} — {%
+              endif %}
+            </strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Platform Controls -->
+  <div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white border-0 py-3">
+      <h2 class="h5 fw-bold mb-1">Platform Controls</h2>
+
+      <div class="small text-muted">
+        These actions affect whether this cafe can operate on the platform.
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="row g-3">
+        {% if cafe.status == 'active' %}
+
+        <!-- Hold -->
+        <div class="col-md-6">
+          <div class="border rounded p-3 h-100">
+            <div class="fw-semibold mb-1">Place Cafe on Hold</div>
+
+            <p class="small text-muted mb-3">
+              Temporarily stop customer ordering without deactivating the cafe.
+            </p>
+
+            <form
+              method="POST"
+              action="{{ url_for(
+                                  'super_admin_routes.hold_cafe',
+                                  cafe_id=cafe.id
+                              ) }}"
+              onsubmit="return confirm('Place {{ cafe.name }} on hold?');"
+            >
+              <button type="submit" class="btn btn-warning">
+                <i class="bi bi-pause-circle me-1"></i>
+                Place on Hold
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {% endif %} {% if cafe.status == 'on_hold' %}
+
+        <!-- Reactivate -->
+        <div class="col-md-6">
+          <div class="border rounded p-3 h-100">
+            <div class="fw-semibold mb-1">Reactivate Cafe</div>
+
+            <p class="small text-muted mb-3">
+              Restore the cafe to active operation and allow customer ordering.
+            </p>
+
+            <form
+              method="POST"
+              action="{{ url_for(
+                                  'super_admin_routes.reactivate_cafe',
+                                  cafe_id=cafe.id
+                              ) }}"
+              onsubmit="return confirm('Reactivate {{ cafe.name }}?');"
+            >
+              <button type="submit" class="btn btn-success">
+                <i class="bi bi-play-circle me-1"></i>
+                Reactivate
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {% endif %} {% if cafe.status != 'inactive' %}
+
+        <!-- Deactivate -->
+        <div class="col-md-6">
+          <div class="border border-danger-subtle rounded p-3 h-100">
+            <div class="fw-semibold mb-1 text-danger">Deactivate Cafe</div>
+
+            <p class="small text-muted mb-3">
+              Permanently disable this cafe's platform operation. This does not
+              delete its data.
+            </p>
+
+            <form
+              method="POST"
+              action="{{ url_for(
+                                  'super_admin_routes.deactivate_cafe',
+                                  cafe_id=cafe.id
+                              ) }}"
+              onsubmit="return confirm('Deactivate {{ cafe.name }}? Customer ordering will stop.');"
+            >
+              <button type="submit" class="btn btn-outline-danger">
+                <i class="bi bi-x-circle me-1"></i>
+                Deactivate
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {% endif %} {% if cafe.status == 'inactive' %}
+
+        <!-- Deactivated Information -->
+        <div class="col-12">
+          <div class="alert alert-danger mb-0">
+            <div class="fw-semibold mb-1">Cafe is deactivated</div>
+
+            <div class="small">
+              This cafe is currently disabled and cannot accept customer orders.
+              Reactivation can be handled through the platform administration
+              process.
+            </div>
+          </div>
+        </div>
+
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
