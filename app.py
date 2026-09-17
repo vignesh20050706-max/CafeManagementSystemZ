@@ -1,5 +1,8 @@
 import os
 import logging
+import threading
+import webbrowser
+
 from flask import Flask, app, redirect, url_for
 from sqlalchemy import inspect, text
 from config import Config
@@ -324,12 +327,23 @@ def create_app(config_class=Config):
 
 if __name__ == '__main__':
     app = create_app()
+
     # Seed on first run
     with app.app_context():
         from database.seed import seed
         seed()
+
+    # Open the Admin Login page when starting the app.
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        threading.Timer(
+            1.0,
+            lambda: webbrowser.open_new(
+                'http://127.0.0.1:5000/admin/login'
+            )
+        ).start()
+
     app.run(
-    host='0.0.0.0',
-    port=5000,
-    debug=True
-)
+        host='0.0.0.0',
+        port=5000,
+        debug=True
+    )

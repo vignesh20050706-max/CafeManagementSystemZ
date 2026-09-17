@@ -156,6 +156,36 @@
           </div>
 
           <div class="mb-4">
+            <div class="small text-muted">Website Address</div>
+
+            {% if cafe.website_slug %}
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+              <code class="text-break">
+                {{ request.host_url.rstrip('/') }}{{ url_for(
+                'customer_routes.cafe_website', slug=cafe.website_slug ) }}
+              </code>
+
+              {% if cafe.status == 'active' %}
+              <a
+                href="{{ url_for(
+          'customer_routes.cafe_website',
+          slug=cafe.website_slug
+      ) }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-sm btn-primary"
+              >
+                <i class="bi bi-box-arrow-up-right me-1"></i>
+                Open Website
+              </a>
+              {% endif %}
+            </div>
+            {% else %}
+            <div class="text-muted mt-1">Website address not available</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-4">
             <div class="small text-muted">Phone</div>
 
             <div class="fw-semibold mt-1">
