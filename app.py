@@ -158,6 +158,37 @@ def create_app(config_class=Config):
             'cafe_id',
             'INTEGER'
         )
+        
+                # Super Admin - Cafe maintenance management
+        add_column_if_missing(
+            'cafes',
+            'maintenance_amount',
+            'NUMERIC(10, 2) DEFAULT 0'
+        )
+
+        add_column_if_missing(
+            'cafes',
+            'maintenance_due_date',
+            'DATE'
+        )
+
+        add_column_if_missing(
+            'cafes',
+            'maintenance_paid',
+            'BOOLEAN DEFAULT 0'
+        )
+
+        add_column_if_missing(
+            'cafes',
+            'maintenance_paid_date',
+            'DATE'
+        )
+
+        add_column_if_missing(
+            'cafes',
+            'grace_period_end',
+            'DATE'
+        )
 
         if migrations:
             try:
