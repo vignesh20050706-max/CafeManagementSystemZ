@@ -152,3 +152,12 @@ def recover_payment(razorpay_payment_id):
 def find_payment_by_razorpay_order(razorpay_order_id):
     """Find a payment record by razorpay order ID."""
     return Payment.query.filter_by(razorpay_order_id=razorpay_order_id).first()
+
+def find_payment_by_razorpay_payment(razorpay_payment_id):
+    """Find a payment record by Razorpay payment ID."""
+    if not razorpay_payment_id:
+        return None
+
+    return Payment.query.filter_by(
+        razorpay_payment_id=razorpay_payment_id
+    ).first()

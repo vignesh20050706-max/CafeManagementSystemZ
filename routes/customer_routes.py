@@ -583,6 +583,23 @@ def verify_payment():
     # Make sure the payment belongs to this checkout session
     if pending_order.get('razorpay_order_id') != razorpay_order_id:
         return jsonify({'error': 'Invalid payment order'}), 400
+    
+    # Prevent reuse of an already processed Razorpay payment.
+    existing_payment_by_id = (
+        payment_service.find_payment_by_razorpay_payment(
+            razorpay_payment_id
+        )
+    )
+
+    if existing_payment_by_id:
+        if existing_payment_by_id.status == PaymentStatus.SUCCESS.value:
+            return jsonify({
+                'error': 'This payment has already been processed.'
+            }), 409
+
+        return jsonify({
+            'error': 'This payment is already being processed.'
+        }), 409
 
     # Verify Razorpay signature
     if not payment_service.verify_payment(
