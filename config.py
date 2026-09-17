@@ -50,10 +50,12 @@ class Config:
     SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
     SMTP_FROM = os.environ.get('SMTP_FROM', 'noreply@cafe.com')
 # Local network URL used by table QR codes
-    BASE_URL = os.environ.get(
-        'BASE_URL',
-        'http://10.215.214.233:5000'
-)
+    BASE_URL = os.environ.get('BASE_URL')
+
+    if not BASE_URL:
+        raise RuntimeError(
+            'BASE_URL environment variable is required.'
+        )
     # Cafe
     CAFE_NAME = os.environ.get('CAFE_NAME', 'The Brew Spot')
     CAFE_PHONE = os.environ.get('CAFE_PHONE', '+91 98765 43210')
