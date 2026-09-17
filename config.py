@@ -60,5 +60,10 @@ class Config:
     CAFE_ADDRESS = os.environ.get('CAFE_ADDRESS', '123 Coffee Lane, Bangalore')
 
     # Admin demo credentials (dev only)
-    ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
-    ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
+    ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME')
+    ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
+
+    if not ADMIN_USERNAME or not ADMIN_PASSWORD:
+        raise RuntimeError(
+            'ADMIN_USERNAME and ADMIN_PASSWORD environment variables are required.'
+        )
