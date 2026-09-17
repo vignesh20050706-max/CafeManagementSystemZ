@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>{% block title %}Super Admin{% endblock %} | Platform</title>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --sa-dark: #0f172a;
+        --sa-sidebar: #172033;
+        --sa-accent: #2563eb;
+        --sa-bg: #f6f8fb;
+        --sa-border: #e2e8f0;
+        --sa-muted: #64748b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--sa-bg);
+        color: #172033;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+
+      .sa-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 250px;
+        z-index: 1050;
+        display: flex;
+        flex-direction: column;
+        background: var(--sa-sidebar);
+        color: white;
+      }
+
+      .sa-brand {
+        padding: 22px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .sa-brand-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+      }
+
+      .sa-brand-subtitle {
+        margin-top: 3px;
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .sa-nav {
+        flex: 1;
+        padding: 14px 10px;
+      }
+
+      .sa-section {
+        padding: 12px 10px 6px;
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .sa-link,
+      .sa-disabled {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 10px 12px;
+        margin-bottom: 3px;
+        border-radius: 7px;
+        color: rgba(255, 255, 255, 0.78);
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+
+      .sa-link:hover,
+      .sa-link.active {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
+
+      .sa-link.active {
+        box-shadow: inset 3px 0 0 var(--sa-accent);
+      }
+
+      .sa-icon {
+        width: 20px;
+        text-align: center;
+      }
+
+      .sa-disabled {
+        opacity: 0.4;
+      }
+
+      .sa-soon {
+        margin-left: auto;
+        font-size: 0.6rem;
+        text-transform: uppercase;
+      }
+
+      .sa-footer {
+        padding: 14px 18px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .sa-footer a {
+        color: rgba(255, 255, 255, 0.7);
+        text-decoration: none;
+        font-size: 0.88rem;
+      }
+
+      .sa-footer a:hover {
+        color: white;
+      }
+
+      .sa-main {
+        margin-left: 250px;
+        min-height: 100vh;
+      }
+
+      .sa-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 900;
+        min-height: 62px;
+        padding: 12px 28px;
+        display: flex;
+        align-items: center;
+        background: white;
+        border-bottom: 1px solid var(--sa-border);
+      }
+
+      .sa-badge {
+        padding: 4px 9px;
+        border-radius: 5px;
+        background: var(--sa-dark);
+        color: white;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+      }
+
+      .sa-top-title {
+        margin-left: 10px;
+        color: var(--sa-muted);
+        font-size: 0.9rem;
+      }
+
+      .sa-content {
+        padding: 28px;
+      }
+
+      .sa-menu {
+        display: none;
+        border: 1px solid var(--sa-border);
+        background: white;
+        border-radius: 7px;
+        padding: 6px 10px;
+        margin-right: 10px;
+      }
+
+      .sa-overlay {
+        display: none;
+      }
+
+      @media (max-width: 991px) {
+        .sa-sidebar {
+          transform: translateX(-100%);
+          transition: transform 0.2s ease;
+        }
+
+        .sa-sidebar.show {
+          transform: translateX(0);
+        }
+
+        .sa-main {
+          margin-left: 0;
+        }
+
+        .sa-menu {
+          display: inline-block;
+        }
+
+        .sa-overlay.show {
+          display: block;
+          position: fixed;
+          inset: 0;
+          z-index: 1040;
+          background: rgba(0, 0, 0, 0.4);
+        }
+
+        .sa-content {
+          padding: 20px;
+        }
+      }
+    </style>
+
+    {% block extra_styles %}{% endblock %}
+  </head>
+
+  <body>
+    <div class="sa-overlay" id="saOverlay" onclick="toggleSuperSidebar()"></div>
+
+    <aside class="sa-sidebar" id="saSidebar">
+      <div class="sa-brand">
+        <div class="sa-brand-title">Super Admin</div>
+
+        <div class="sa-brand-subtitle">Platform Control Center</div>
+      </div>
+
+      <nav class="sa-nav">
+        <div class="sa-section">Platform</div>
+
+        <a
+          href="{{ url_for('super_admin_routes.dashboard') }}"
+          class="sa-link {{ 'active' if request.endpoint == 'super_admin_routes.dashboard' else '' }}"
+        >
+          <span class="sa-icon">⌂</span>
+          Platform Overview
+        </a>
+
+        <a
+          href="{{ url_for('super_admin_routes.dashboard') }}"
+          class="sa-link {{ 'active' if request.endpoint in ['super_admin_routes.create_cafe', 'super_admin_routes.view_cafe', 'super_admin_routes.edit_cafe'] else '' }}"
+        >
+          <span class="sa-icon">▦</span>
+          Cafe Management
+        </a>
+
+        <div class="sa-section">Management</div>
+
+        <div class="sa-disabled">
+          <span class="sa-icon">♙</span>
+          Cafe Admins
+          <span class="sa-soon">Soon</span>
+        </div>
+
+        <div class="sa-disabled">
+          <span class="sa-icon">₹</span>
+          Maintenance
+          <span class="sa-soon">Soon</span>
+        </div>
+
+        <div class="sa-disabled">
+          <span class="sa-icon">✦</span>
+          Cafe Customization
+          <span class="sa-soon">Soon</span>
+        </div>
+
+        <div class="sa-section">Insights</div>
+
+        <div class="sa-disabled">
+          <span class="sa-icon">♧</span>
+          Customers / Marketing
+          <span class="sa-soon">Soon</span>
+        </div>
+
+        <div class="sa-disabled">
+          <span class="sa-icon">▥</span>
+          Platform Analytics
+          <span class="sa-soon">Soon</span>
+        </div>
+
+        <div class="sa-disabled">
+          <span class="sa-icon">⚙</span>
+          Platform Settings
+          <span class="sa-soon">Soon</span>
+        </div>
+      </nav>
+
+      <div class="sa-footer">
+        <a href="{{ url_for('admin_routes.logout') }}"> ← Logout </a>
+      </div>
+    </aside>
+
+    <main class="sa-main">
+      <header class="sa-topbar">
+        <button type="button" class="sa-menu" onclick="toggleSuperSidebar()">
+          ☰
+        </button>
+
+        <span class="sa-badge"> SUPER ADMIN </span>
+
+        <span class="sa-top-title"> Platform Administration </span>
+      </header>
+
+      <section class="sa-content">
+        {% with messages = get_flashed_messages(with_categories=true) %} {% if
+        messages %} {% for category, message in messages %}
+
+        <div
+          class="alert alert-{{ category }} alert-dismissible fade show"
+          role="alert"
+        >
+          {{ message }}
+
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert"
+          ></button>
+        </div>
+
+        {% endfor %} {% endif %} {% endwith %} {% block content %}{% endblock %}
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      function toggleSuperSidebar() {
+        const sidebar = document.getElementById("saSidebar");
+        const overlay = document.getElementById("saOverlay");
+
+        sidebar.classList.toggle("show");
+        overlay.classList.toggle("show");
+      }
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+  </body>
+</html>
