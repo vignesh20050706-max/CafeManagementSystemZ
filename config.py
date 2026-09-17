@@ -6,7 +6,12 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / '.env')
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+
+    if not SECRET_KEY:
+        raise RuntimeError(
+            'SECRET_KEY environment variable is required.'
+        )
         # Customer ordering session
     SESSION_COOKIE_NAME = 'cafe_session'
     SESSION_COOKIE_HTTPONLY = True
@@ -22,8 +27,13 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Razorpay
-    RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_test_XXXXXXXXXXXXXX')
-    RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', 'XXXXXXXXXXXXXXXX')
+    RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID')
+    RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET')
+
+    if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+        raise RuntimeError(
+            'RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables are required.'
+        )
 
     # WhatsApp
     WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN', '')
