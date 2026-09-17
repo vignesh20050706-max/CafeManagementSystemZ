@@ -13,6 +13,13 @@ class Cafe(db.Model):
         nullable=False,
         unique=True
     )
+    
+    website_slug = db.Column(
+        db.String(160),
+        unique=True,
+        nullable=True,
+        index=True
+    )
 
     phone = db.Column(
         db.String(30),

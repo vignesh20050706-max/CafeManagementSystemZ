@@ -128,6 +128,12 @@ def create_app(config_class=Config):
             'role',
             "VARCHAR(20) DEFAULT 'cafe_admin'"
         )
+        
+        add_column_if_missing(
+            'cafes',
+            'website_slug',
+            'VARCHAR(160)'
+        )
 
         add_column_if_missing(
             'customers',
@@ -230,6 +236,21 @@ def create_app(config_class=Config):
 
             db.session.add(default_cafe)
             db.session.flush()
+            
+                    # Generate website slugs for existing cafes.
+        from services.cafe_service import generate_unique_slug
+
+        cafes_without_slugs = Cafe.query.filter(
+            Cafe.website_slug.is_(None)
+        ).order_by(Cafe.id.asc()).all()
+
+        for cafe in cafes_without_slugs:
+            cafe.website_slug = generate_unique_slug(
+                cafe.name,
+                cafe.id
+            )
+
+        db.session.commit()
 
         # Existing admins
         Admin.query.filter(

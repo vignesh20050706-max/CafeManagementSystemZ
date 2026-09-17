@@ -1,3 +1,4 @@
+from models.cafe import Cafe
 import json
 import logging
 from urllib import response
@@ -14,19 +15,52 @@ from flask import (
 )
 from sqlalchemy import table
 from database.database import db
+from models.cafe import Cafe
 from models.table import CafeTable
 from models.menu import MenuCategory, MenuItem
 from models.order import Order, OrderItem, OrderStatus
 from models.payment import Payment, PaymentStatus
 from models.cafe_status import CafeStatus
 from services import order_service, payment_service, notification_service, invoice_service, qr_service
-from services.cafe_service import get_default_cafe
+from services.cafe_service import (
+    get_default_cafe,
+    get_cafe_by_slug,
+    set_active_cafe,
+    get_current_cafe,
+)
 from utils.validators import validate_mobile, validate_email, validate_cart_items
 from utils.helpers import format_currency
 
 logger = logging.getLogger(__name__)
 
 customer_bp = Blueprint('customer_routes', __name__)
+@customer_bp.route('/c/<string:slug>')
+def cafe_website(slug):
+    """
+    Enter a specific cafe website.
+
+    The selected cafe is stored in the customer session so all
+    existing customer ordering routes can operate against that cafe.
+    """
+    cafe = get_cafe_by_slug(slug)
+
+    if not cafe:
+        return redirect(
+            url_for('customer_routes.home')
+        )
+
+    set_active_cafe(cafe)
+
+    # Reset cafe-specific ordering state when switching websites.
+    session.pop('order_type', None)
+    session.pop('table_id', None)
+    session.pop('table_number', None)
+    session.pop('pending_order', None)
+    session.pop('active_orders', None)
+
+    return redirect(
+        url_for('customer_routes.home')
+    )
 
 def customer_order_authorized(order_id):
     """Return the order only when it belongs to this customer's session."""
@@ -43,7 +77,7 @@ def customer_order_authorized(order_id):
 @customer_bp.route('/')
 def home():
     """Customer home page."""
-    cafe = get_default_cafe()
+    cafe = get_current_cafe()
 
     if not cafe:
         return render_template(
@@ -95,7 +129,30 @@ def home():
 def table_entry(table_id):
     """Enter the cafe ordering flow from a physical table QR code."""
 
-    cafe = get_default_cafe()
+        # Resolve the cafe from the physical table itself.
+    table_identity = (
+        CafeTable.query
+        .filter_by(
+            id=table_id,
+            is_active=True
+        )
+        .first()
+    )
+
+    if table_identity:
+        cafe_for_table = (
+            Cafe.query
+            .filter_by(
+                id=table_identity.cafe_id,
+                status='active'
+            )
+            .first()
+        )
+
+        if cafe_for_table:
+            set_active_cafe(cafe_for_table)
+
+    cafe = get_current_cafe()
 
     if not cafe:
         response = redirect(
@@ -178,7 +235,7 @@ def order_type():
             url_for('customer_routes.menu')
         )
 
-    cafe = get_default_cafe()
+    cafe = get_current_cafe()
 
     if not cafe:
         return redirect(
@@ -199,7 +256,7 @@ def order_type():
 @customer_bp.route('/order-now')
 def order_now():
     """Start customer ordering only when the cafe is accepting orders."""
-    cafe = get_default_cafe()
+    cafe = get_current_cafe()
 
     if not cafe:
         return redirect(
@@ -221,7 +278,7 @@ def order_now():
 @customer_bp.route('/menu')
 def menu():
     """Browse the menu for the active cafe."""
-    cafe = get_default_cafe()
+    cafe = get_current_cafe()
 
     if not cafe:
         return render_template(
@@ -257,7 +314,7 @@ def menu():
 @customer_bp.route('/api/menu/items')
 def api_menu_items():
     """Return menu items for the active cafe as JSON."""
-    cafe = get_default_cafe()
+    cafe = get_current_cafe()
 
     if not cafe:
         return jsonify([])
@@ -292,7 +349,7 @@ def cart():
     table_id = request.args.get('table_id', type=int)
 
     if table_id:
-        cafe = get_default_cafe()
+        cafe = get_current_cafe()
 
         table = None
 
@@ -354,7 +411,7 @@ def cart():
 @customer_bp.route('/checkout')
 def checkout():
     """Checkout page."""
-    cafe = get_default_cafe()
+    cafe = get_current_cafe()
     if not cafe:
         return redirect(url_for('customer_routes.home'))
 
@@ -386,7 +443,7 @@ def create_payment():
     data = request.get_json(silent=True) or {}
 
     # Cafe must be accepting orders
-    cafe = get_default_cafe()
+    cafe = get_current_cafe()
 
     if not cafe:
         return jsonify({
