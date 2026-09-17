@@ -43,7 +43,11 @@ def create_app(config_class=Config):
         else:
             cafe_status = 'closed'
         return {
-            'cafe_name': app.config.get('CAFE_NAME', 'The Brew Spot'),
+            'cafe_name': (
+                current_cafe.name
+                if current_cafe
+                else app.config.get('CAFE_NAME', 'The Brew Spot')
+            ),
             'cafe_status': cafe_status,
             'cafe_closed': cafe_status == 'closed',
             'high_order_mode': cafe_status == 'high_order_mode',
