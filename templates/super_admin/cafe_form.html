@@ -1,0 +1,276 @@
+{% extends "admin/base.html" %} {% block content %}
+
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div
+    class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4"
+  >
+    <div>
+      <div class="text-muted small text-uppercase fw-semibold">
+        Cafe Management
+      </div>
+
+      <h1 class="h3 fw-bold mb-1">{{ page_title }}</h1>
+
+      <p class="text-muted mb-0">
+        {% if cafe %} Update cafe information and maintenance settings. {% else
+        %} Register a new cafe on the platform. {% endif %}
+      </p>
+    </div>
+
+    <a
+      href="{{ url_for('super_admin_routes.dashboard') }}"
+      class="btn btn-outline-secondary"
+    >
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Cafes
+    </a>
+  </div>
+
+  <!-- Form -->
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-9">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4 p-lg-5">
+          <form method="POST" novalidate>
+            <!-- Cafe Information -->
+            <div class="mb-4">
+              <h2 class="h5 fw-bold mb-1">Cafe Information</h2>
+
+              <p class="text-muted small mb-4">
+                Basic information used to identify and contact the cafe.
+              </p>
+
+              <div class="row g-4">
+                <!-- Cafe Name -->
+                <div class="col-md-6">
+                  <label for="name" class="form-label fw-semibold">
+                    Cafe Name
+                    <span class="text-danger">*</span>
+                  </label>
+
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="name"
+                    name="name"
+                    maxlength="150"
+                    required
+                    value="{{ cafe.name if cafe else '' }}"
+                    placeholder="Enter cafe name"
+                  />
+                </div>
+
+                <!-- Phone -->
+                <div class="col-md-6">
+                  <label for="phone" class="form-label fw-semibold">
+                    Phone Number
+                  </label>
+
+                  <input
+                    type="tel"
+                    class="form-control"
+                    id="phone"
+                    name="phone"
+                    maxlength="30"
+                    value="{{ cafe.phone if cafe else '' }}"
+                    placeholder="+91 XXXXX XXXXX"
+                  />
+                </div>
+
+                <!-- Address -->
+                <div class="col-12">
+                  <label for="address" class="form-label fw-semibold">
+                    Address
+                  </label>
+
+                  <textarea
+                    class="form-control"
+                    id="address"
+                    name="address"
+                    rows="3"
+                    maxlength="300"
+                    placeholder="Enter complete cafe address"
+                  >
+{{ cafe.address if cafe else '' }}</textarea
+                  >
+                </div>
+              </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <!-- Maintenance -->
+            <div class="mb-4">
+              <h2 class="h5 fw-bold mb-1">Maintenance Configuration</h2>
+
+              <p class="text-muted small mb-4">
+                Configure the cafe's maintenance amount and payment deadline.
+              </p>
+
+              <div class="row g-4">
+                <!-- Amount -->
+                <div class="col-md-6">
+                  <label
+                    for="maintenance_amount"
+                    class="form-label fw-semibold"
+                  >
+                    Maintenance Amount
+                  </label>
+
+                  <div class="input-group">
+                    <span class="input-group-text"> ₹ </span>
+
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="maintenance_amount"
+                      name="maintenance_amount"
+                      min="0"
+                      step="0.01"
+                      value="{{ cafe.maintenance_amount if cafe else '0.00' }}"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div class="form-text">
+                    Amount payable by the cafe for the maintenance period.
+                  </div>
+                </div>
+
+                <!-- Due Date -->
+                <div class="col-md-6">
+                  <label
+                    for="maintenance_due_date"
+                    class="form-label fw-semibold"
+                  >
+                    Maintenance Due Date
+                  </label>
+
+                  <input
+                    type="date"
+                    class="form-control"
+                    id="maintenance_due_date"
+                    name="maintenance_due_date"
+                    value="{% if cafe and cafe.maintenance_due_date %}{{ cafe.maintenance_due_date.strftime('%Y-%m-%d') }}{% endif %}"
+                  />
+
+                  <div class="form-text">
+                    A 7-day grace period is calculated automatically.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grace Period Preview -->
+            {% if cafe and cafe.maintenance_due_date %}
+
+            <div
+              class="alert alert-light border d-flex align-items-start gap-3 mb-4"
+            >
+              <i class="bi bi-calendar-check fs-4"></i>
+
+              <div>
+                <div class="fw-semibold">Current Grace Period</div>
+
+                <div class="small text-muted">
+                  Maintenance due: {{ cafe.maintenance_due_date.strftime('%d %b
+                  %Y') }}
+                  <br />
+
+                  Grace period ends: {% if cafe.grace_period_end %} {{
+                  cafe.grace_period_end.strftime('%d %b %Y') }} {% else %} — {%
+                  endif %}
+                </div>
+              </div>
+            </div>
+
+            {% endif %}
+
+            <!-- Status Information -->
+            {% if cafe %}
+
+            <div class="mb-4">
+              <h2 class="h5 fw-bold mb-3">Cafe Status</h2>
+
+              <div class="border rounded p-3">
+                <div
+                  class="d-flex flex-wrap justify-content-between align-items-center gap-3"
+                >
+                  <div>
+                    <div class="fw-semibold">Current Platform Status</div>
+
+                    <div class="small text-muted">
+                      Status changes are controlled from the cafe management
+                      page.
+                    </div>
+                  </div>
+
+                  {% if cafe.status == 'active' %}
+
+                  <span
+                    class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2"
+                  >
+                    Active
+                  </span>
+
+                  {% elif cafe.status == 'on_hold' %}
+
+                  <span
+                    class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2"
+                  >
+                    On Hold
+                  </span>
+
+                  {% elif cafe.status == 'inactive' %}
+
+                  <span
+                    class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2"
+                  >
+                    Deactivated
+                  </span>
+
+                  {% else %}
+
+                  <span
+                    class="badge bg-secondary-subtle text-secondary border px-3 py-2"
+                  >
+                    {{ cafe.status|replace('_', ' ')|title }}
+                  </span>
+
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="d-flex flex-wrap justify-content-end gap-2 pt-2">
+              <a
+                href="{% if cafe %}
+                                        {{ url_for('super_admin_routes.view_cafe', cafe_id=cafe.id) }}
+                                     {% else %}
+                                        {{ url_for('super_admin_routes.dashboard') }}
+                                     {% endif %}"
+                class="btn btn-outline-secondary"
+              >
+                Cancel
+              </a>
+
+              <button type="submit" class="btn btn-primary">
+                {% if cafe %}
+                <i class="bi bi-check-lg me-1"></i>
+                Save Changes {% else %}
+                <i class="bi bi-plus-lg me-1"></i>
+                Create Cafe {% endif %}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
