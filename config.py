@@ -15,7 +15,10 @@ class Config:
         # Customer ordering session
     SESSION_COOKIE_NAME = 'cafe_session'
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = os.environ.get(
+        'SESSION_COOKIE_SECURE',
+        'false'
+    ).lower() == 'true'
     SESSION_COOKIE_SAMESITE = 'Lax'
     SESSION_COOKIE_PATH = '/'
     PERMANENT_SESSION_LIFETIME = 86400
