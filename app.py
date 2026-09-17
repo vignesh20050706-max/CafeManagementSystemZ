@@ -30,8 +30,15 @@ def create_app(config_class=Config):
     @app.context_processor
     def inject_helpers():
         from models.cafe_status import CafeStatus
+        from services.cafe_service import get_current_cafe
         from utils.helpers import format_currency, status_label, status_color, time_ago
-        cafe_status = CafeStatus.get().status
+
+        current_cafe = get_current_cafe()
+
+        if current_cafe:
+            cafe_status = CafeStatus.get(current_cafe.id).status
+        else:
+            cafe_status = 'closed'
         return {
             'cafe_name': app.config.get('CAFE_NAME', 'The Brew Spot'),
             'cafe_status': cafe_status,

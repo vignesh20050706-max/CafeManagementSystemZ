@@ -23,7 +23,6 @@ from models.payment import Payment, PaymentStatus
 from models.cafe_status import CafeStatus
 from services import order_service, payment_service, notification_service, invoice_service, qr_service
 from services.cafe_service import (
-    get_default_cafe,
     get_cafe_by_slug,
     set_active_cafe,
     get_current_cafe,

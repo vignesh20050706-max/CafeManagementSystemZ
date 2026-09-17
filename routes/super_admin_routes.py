@@ -16,6 +16,7 @@ from database.database import db
 from models.admin import Admin
 from models.cafe import Cafe
 from models.cafe_status import CafeStatus
+from services.cafe_service import generate_unique_slug
 
 
 # app.py already registers this blueprint with /super-admin
@@ -196,6 +197,7 @@ def create_cafe():
 
         cafe = Cafe(
             name=name,
+            website_slug=generate_unique_slug(name),
             phone=phone or None,
             address=address or None,
             status='active',
